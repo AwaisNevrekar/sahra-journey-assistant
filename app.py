@@ -16,7 +16,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from sahra import autopilot, clock, config, db, engine
+from sahra import autopilot, clock, config, db, engine, llm
 from sahra import messages as M
 from sahra import reconcile as rc
 from sahra import value
@@ -24,6 +24,12 @@ from sahra import wayfinding as wf
 
 ROOT = Path(__file__).resolve().parent
 st.set_page_config(page_title="Sahra Journey Assistant", page_icon="✈️", layout="wide")
+try:                                   # Streamlit Cloud: API keys from Secrets become environment variables
+    for _k, _v in st.secrets.items():
+        if isinstance(_v, str):
+            os.environ.setdefault(_k, _v)
+except Exception:
+    pass
 
 # ---------------------------------------------------------------- design tokens
 # light / dark, each ≥ 4.5:1 on its surface (see README › Design)
@@ -110,7 +116,9 @@ def show_trace(res):
     st.markdown(f"<div class='step'><b>Outcome</b> {res['outcome']}{' · ' + pill(q) if q else ''}</div>",
                 unsafe_allow_html=True)
     for t in res["trace"]:
-        st.markdown(f"<div class='step'><b>{esc(t['stage'])}</b> — {esc(t['summary'])}</div>", unsafe_allow_html=True)
+        indent = " style='margin-left:18px'" if t["stage"].startswith("4 Act") else ""
+        st.markdown(f"<div class='step'{indent}><b>{esc(t['stage'])}</b> — {esc(t['summary'])}</div>",
+                    unsafe_allow_html=True)
 
 
 def age(m):
@@ -158,7 +166,7 @@ with st.sidebar:
         st.code("H8N3ZP  Al-Mansouri  SA204  reduced mobility\nK7P2QX  Rahman       SA204\nR2D9WE  Sharma       SA204  "
                 "family · Hindi\nP9Q2MS  Iyer         SA118  family\nE9R2TY  Mostafa      DX330  feeds disagree\n"
                 "B6N1ML  Balushi      OR512  feed missing", language=None)
-    st.write("")
+    st.caption(f"Planner: {llm.describe()}")
     if st.button("Reset demo", width="stretch", help="Back to 14:00 with fresh data"):
         engine.init(reset=True)
         st.cache_resource.clear()
@@ -168,7 +176,7 @@ with st.sidebar:
         st.rerun()
 
 st.markdown("<div class='title'>Sahra Airport</div><div class='subtitle'>Journey assistant — the right gate, on time, "
-            "without the queue. It never guesses a gate, status or time.</p>", unsafe_allow_html=True)
+            "without the queue. It never guesses a gate, status or time.</div>", unsafe_allow_html=True)
 tabs = st.tabs(["Traveller", "Staff", "Activity", "Tests", "Value", "How it works"])
 
 # ================================================================ traveller
@@ -360,6 +368,8 @@ with tabs[1]:
 
     with st.expander("Settings and feed simulator"):
         ss.staff_id = st.text_input("Staff ID (recorded on every decision)", ss.staff_id, max_chars=40)
+        st.caption(f"Planner: {llm.describe()} · Tracing: {engine.tracing_status()}. "
+                   "Add GROQ_API_KEY or GEMINI_API_KEY to a .env file (see .env.example) to turn on the AI planner.")
         st.caption("Send a record as the display system (FIDS) or the airline would.")
         flights = [f["flight_no"] for f in db.all_flights()]
         statuses = ["ON_TIME", "BOARDING", "DELAYED", "GATE_CLOSED", "DEPARTED", "CANCELLED", "LANDED", "EXPECTED"]
@@ -404,6 +414,26 @@ with tabs[1]:
 
 # ================================================================ activity
 with tabs[2]:
+    st.markdown("<div class='section' style='margin-top:0'>Replay a case</div>", unsafe_allow_html=True)
+    cases = engine.case_list()
+    if not cases:
+        st.caption("No cases yet — ask a question or move the clock.")
+    else:
+        pick_case = st.selectbox("Case", cases, label_visibility="collapsed",
+                                 format_func=lambda c: f"{c['time']} · {c['event_id']} · {c['label']} → {c['outcome']}")
+        steps, msgs = engine.case_replay(pick_case["event_id"])
+        for stp in steps:
+            indent = " style='margin-left:18px'" if stp["stage"].startswith("4 Act") else ""
+            st.markdown(f"<div class='step'{indent}><b>{clock.hhmm(stp['ts'])} · {esc(stp['stage'])}</b> "
+                        f"<span class='muted'>[{stp['kind']}]</span> — {esc(stp['summary'])}</div>", unsafe_allow_html=True)
+        for m in msgs[:6]:
+            st.markdown(f"<div class='msg'><div class='muted small'>Sent {clock.hhmm(m['ts'])} → {esc(m['recipient'])} · "
+                        f"{m['lang']} · approved by {esc(m['approved_by'] or '')}</div>"
+                        f"<div class='{'rtl' if m['lang'] == 'ar' else ''}'>{esc(m['text'])}</div></div>",
+                        unsafe_allow_html=True)
+        if len(msgs) > 6:
+            st.caption(f"+ {len(msgs) - 6} more messages")
+    st.markdown("<div class='section'>Full log</div>", unsafe_allow_html=True)
     st.caption("Every feed read, decision, approval, hand-off and message. Passengers appear only as anonymous ids and "
                "masked contacts.")
     log = pd.DataFrame(db.audit(2000))
@@ -434,7 +464,7 @@ with tabs[2]:
 with tabs[3]:
     csv_path = ROOT / "outputs" / "test_log.csv"
     c1, c2 = st.columns([3, 1], vertical_alignment="bottom")
-    c1.caption("26 scripted scenarios on a separate fresh database. Your live demo is not affected.")
+    c1.caption("30 scripted scenarios on a separate fresh database. Your live demo is not affected.")
     if c2.button("Run all tests", type="primary", width="stretch"):
         env = {**os.environ, "SAHRA_OUT": str(ROOT / "outputs" / "test_run"), "PYTHONIOENCODING": "utf-8"}
         with st.spinner("Running scenarios…"):
@@ -488,6 +518,7 @@ with tabs[5]:
     st.markdown("""
 | Rule | How it is enforced — in code, not prompts |
 |---|---|
+| AI planner | The model only chooses tools and the route; code checks every plan (no invented flights or places) and emergencies never reach it. If it fails, the rule planner takes over. |
 | Never invent a gate, status or time | Answers are templates filled only with reconciled values; the guard rejects any unverified field. |
 | Conflicting feeds | Display system and airline must agree. Under 3 min apart = syncing; 3 min or more = conflict, withheld, ops alerted. |
 | Missing or stale data | Records older than 15 min are ignored; no fresh value means the assistant refuses to guess. |

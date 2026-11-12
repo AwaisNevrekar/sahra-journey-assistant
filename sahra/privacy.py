@@ -24,12 +24,20 @@ def mask_contact(channel: str, phone: str) -> str:
     return f"{channel}:+{digits[:3]} •• ••• {digits[-3:]}" if digits else f"{channel}:unknown"
 
 
+SELF_NAME_RE = re.compile(r"\b(my name is|i am|i'm|im|this is)\s+([A-Z][a-z]+)", re.I)
+NOT_NAMES = {"lost", "at", "near", "in", "on", "flying", "going", "here", "looking", "travelling", "traveling", "with",
+             "from", "sorry", "not", "so", "very", "late", "stuck", "waiting", "trying", "sure", "the", "a", "an",
+             "blind", "deaf", "sick", "ok", "okay", "fine", "new", "alone", "outside", "inside", "by", "next"}
+
+
 def redact_for_log(text: str) -> str:
     if not text:
         return ""
-    t = REF_RE.sub("[REF]", text)
+    t = REF_RE.sub(lambda m: m.group(0) if FLIGHT_LIKE.fullmatch(m.group(0)) else "[REF]", text)
     t = PHONE_RE.sub(lambda m: m.group(0) if DATE_RE.fullmatch(m.group(0).strip()) else "[PHONE]", t)
-    return NAME_RE.sub(lambda m: m.group(0) if m.group(0) in SAFE_PHRASES else "[NAME]", t)
+    t = NAME_RE.sub(lambda m: m.group(0) if m.group(0) in SAFE_PHRASES else "[NAME]", t)
+    return SELF_NAME_RE.sub(lambda m: m.group(0) if m.group(2).lower() in NOT_NAMES or not m.group(2)[0].isupper()
+                            else f"{m.group(1)} [NAME]", t)
 
 
 redact_for_llm = redact_for_log

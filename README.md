@@ -17,7 +17,7 @@ This prototype turns two live flight feeds into timely, safe actions:
 |---|---|
 | Working prototype (traveller + staff interface) | `streamlit run app.py` |
 | One-page flow diagram | `docs/flow_diagram.pdf` / `.png` |
-| Test log ≥ 10 cases, ≥ 3 escalate / refuse | `outputs/test_log.md` / `.csv` — **26 cases, 26 pass**, including escalations, refusals and blocks |
+| Test log ≥ 10 cases, ≥ 3 escalate / refuse | `outputs/test_log.md` / `.csv` — **30 cases, 30 pass**, including escalations, refusals, blocks and the AI planner path |
 | Value estimate | `docs/VALUE_ESTIMATE.md` + live calculator in the app |
 
 ## Run it (5 minutes)
@@ -27,13 +27,16 @@ python -m venv .venv
 source .venv/bin/activate            # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-python scenarios.py                  # runs the 26 test scenarios → outputs/test_log.md
+python scenarios.py                  # runs the 30 test scenarios → outputs/test_log.md
+python -m tests.test_llm_client      # checks the AI client against a local stand-in server
 python -m tests.question_bank        # 96 real phrasings must reach the right worker
 streamlit run app.py                 # opens the dashboard
 ```
 
-No API key is needed. Everything safety-critical is plain Python. Optional: set `GROQ_API_KEY`, `GEMINI_API_KEY` or
-`SAHRA_USE_OLLAMA=1` and the router uses an LLM **only** to classify questions it couldn't place (redacted text, intent only).
+**AI planner (optional).** Copy `.env.example` to `.env` and paste a free Groq or Gemini key (or use local Ollama).
+The sidebar then shows `Planner: groq · …`. Without a key the rule planner runs the same loop — fully working and tested.
+On Streamlit Cloud, put the same keys under *App settings → Secrets*. For Langfuse traces: `pip install langfuse` and add
+the Langfuse keys to `.env`.
 
 Headless demo of the autonomous loop: `python -m sahra.autopilot --reset --minutes 18 --auto-approve DEMO-STAFF`
 
@@ -66,7 +69,7 @@ One LangGraph run per event, 10 stages (see `docs/flow_diagram.pdf`):
 |---|---|---|
 | 1 Trigger | feed update · traveller question · every-minute scan | `workflow.n1_trigger` |
 | 2 Validate | Pydantic schema, no future timestamps, prompt-injection filter | `schemas.py`, `guards.py` |
-| 3 Coordinator | deterministic EN/AR/HI router (optional LLM for unknown only) | `intents.py`, `llm.py` |
+| 3 Plan ⇄ 4 Act | An AI model (or the rule planner) calls read-only tools in a loop — `get_context`, `find_places`, `find_flight_by_city`, `read_flight`, `search_official_info` — then finishes with a route. Code checks the plan; medical, assistance, privacy and visa are routed by code only; any model failure falls back to the rule planner | `planner.py`, `llm.py`, `intents.py` |
 | 4a Reconciler | FIDS vs airline per field → CONFIRMED / SINGLE_SOURCE / SYNCING / CONFLICT / UNKNOWN | `reconcile.py` |
 | 4b Journey solver | Dijkstra walking route + live queue sensors → leave-by time | `wayfinding.py` |
 | 4c Responder | approved templates filled with verified facts only | `compose.py`, `messages.py` |
@@ -76,12 +79,13 @@ One LangGraph run per event, 10 stages (see `docs/flow_diagram.pdf`):
 | 6 Guard | code-only: no unverified fact, no personal data, broadcasts need approval | `guards.check` |
 | 7 Approval | durable LangGraph `interrupt()`; approve / reject / 5-min timeout = not sent | `workflow.n7_approval` |
 | 8 Write gateway | re-checks live feeds before sending; one atomic outbox write | `workflow.n8_gateway` |
-| 9–10 | audit log → Streamlit dashboard | `db.log`, `app.py` |
+| 9–10 | audit log (+ optional Langfuse traces) → Streamlit dashboard with case replay | `db.log`, `engine.py`, `app.py` |
 
 ## Safety rules — how each is handled
 
 | Rule | Handling |
 |---|---|
+| AI never decides safety | The model only plans; it never writes passenger text, sees only redacted text, and every plan is checked: invented flights/places are rejected (T28), emergencies skip the model (T29), outages fall back to rules (T30). |
 | Never invent status / gate / time | Replies are templates filled only with reconciled values. Guard rejects any draft containing an unverified field. |
 | Staff approval before whole-flight messages | Every broadcast pauses for a named staff member. Reject is logged with a reason. No answer in 5 min → **not sent**, duty manager ticket. Live data is re-checked at send time (test T12). |
 | Conflicting feeds | Display system and airline feed must agree. < 3 min apart = syncing (wait); ≥ 3 min = conflict → withheld + ops ticket (T04, T07). |

@@ -2,7 +2,8 @@
 
  1 Trigger        flight-feed update · traveller question · scheduled proactive scan
  2 Validate       Pydantic schemas, freshness, prompt-injection filter
- 3 Coordinator    routes the event (rule router; optional LLM only for unknown questions)
+ 3 Plan ⇄ 4 Act  questions: an AI model (or the rule planner) calls read-only tools in a loop, then finishes with a
+                  routing decision that code checks; medical/assistance/privacy/visa are routed by code only
  4 Workers        4a feed reconciler · 4b journey solver · 4c responder · 4d human hand-off · 4e lost & found
                   4f official-info/policy · 4g proactive nudge scan · 4h directions (wayfinding)
  5 Remember       change detection vs. stored flight state · chat session memory
@@ -22,7 +23,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 from pydantic import ValidationError
 
-from . import clock, compose, config, db, guards, intents, llm, privacy
+from . import clock, compose, config, db, guards, intents, llm, planner, privacy
 from . import messages as M
 from . import reconcile as rc
 from . import wayfinding as wf
@@ -50,6 +51,10 @@ class S(TypedDict, total=False):
     approval: dict
     outcome: str
     trace: Annotated[list, operator.add]
+    plan_ctx: dict
+    plan_mode: str
+    steps: list
+    pending: dict
 
 
 def _t(stage, summary):
@@ -129,54 +134,92 @@ def n2_validate(s: S):
             db.log(eid, stage, "BLOCKED", f"Prompt-injection / unauthorised broadcast attempt blocked", {"pattern": hit})
             return {"blocked": True, "lang": lang, "outcome": "BLOCKED_INJECTION", "drafts": [d],
                     "trace": [_t(stage, "Blocked: prompt-injection / broadcast-request pattern. Nothing else runs.")]}
+        db.log(eid, stage, "DECISION", f"Input OK · language={lang} · no injection patterns")
         return {"lang": lang, "trace": [_t(stage, f"Input OK · language={lang} · no injection patterns")]}
 
     return {"trace": [_t(stage, "Scan request OK")]}
 
 
 # ---------------------------------------------------------------- 3
-def n3_coordinator(s: S):
+def n3_plan(s: S):
+    """Stage 3 — plan. Feed and scan events have a fixed route. Questions go through the planner loop:
+    an AI model (or the rule planner) calls read-only tools (stage 4) until it can finish with a routing decision,
+    which code then checks before any worker runs."""
     ev, eid = s["event"], s["event_id"]
-    stage = "3 Coordinator"
+    stage = "3 Plan"
     if ev["type"] == "feed_update":
-        msg = f"Feed event → reconcile {s['flight_no']} and check for passenger-relevant changes"
+        msg = f"Feed event → reconcile {s['flight_no']} and check for passenger-relevant changes (fixed route, code)"
         db.log(eid, stage, "DECISION", msg)
         return {"route": "feed", "trace": [_t(stage, msg)]}
     if ev["type"] == "tick":
-        db.log(eid, stage, "DECISION", "Scan → proactive nudge worker")
+        db.log(eid, stage, "DECISION", "Scan → proactive nudge worker (fixed route, code)")
         return {"route": "tick", "trace": [_t(stage, "Proactive scan → journey nudge worker")]}
 
-    sess = _session(s)
-    intent, ents = intents.classify(ev["text"])
-    via = "rules"
-    if intent == "unknown" and llm.available():
-        li = llm.classify(privacy.redact_for_llm(ev["text"]))
-        if li and li != "unknown":
-            intent, via = li, f"LLM ({llm.provider()}, redacted text)"
-    sid = sess.get("session_id", "anon")
-    memory = db.session_get(sid)
-    followup = ""
-    aw = memory.get("awaiting")
-    if aw and intent not in ("medical", "assistance", "privacy", "visa", "security", "lost"):
-        place = ents.get("origin") or ents.get("location")
-        if not place and ents.get("destination"):
-            k, v = ents["destination"]
-            place = v if k == "node" else (wf.DESTS[v]["nodes"][0] if len(wf.DESTS[v]["nodes"]) == 1 else None)
-        if aw == "location" and place:
-            ents.update(origin=place, location=place,
-                        destination=tuple(memory["dest"]) if memory.get("dest") else None)
-            intent, followup = memory.get("for", "directions"), " (answer to 'where are you?')"
-        elif aw == "destination" and (ents.get("destination") or ents.get("flight_no")):
-            ents["origin"] = ents.get("origin") or memory.get("origin")
-            intent, followup = "directions", " (answer to 'where do you need to go?')"
-    memory.pop("awaiting", None)
-    db.session_set(sid, memory)
-    flight = ents.get("flight_no") or sess.get("flight_no") or memory.get("last_flight")
+    sess, lang = _session(s), s.get("lang", "en")
+    steps = list(s.get("steps") or [])
+    trace = []
+    if s.get("plan_ctx"):
+        ctx, mode = s["plan_ctx"], s["plan_mode"]
+    else:
+        ctx, mode = planner.start(ev["text"], sess, lang)
+        why = {"safety": "safety-critical request → routed by code, no AI model asked",
+               "memory": f"traveller answered our question ({ctx['rule']['followup']}) → resolved from chat memory",
+               "llm": f"AI planner: {llm.describe()} (sees redacted text only)",
+               "rules": "rule planner (no AI model configured)"}[mode]
+        db.log(eid, stage, "DECISION", f"Planner mode: {why}", {"mode": mode})
+        trace.append(_t(stage, why))
+
+    if mode in ("safety", "memory"):
+        plan = planner.rule_finish(ctx["rule"], reason=mode)
+    elif len(steps) >= planner.MAX_TOOL_CALLS:
+        plan = planner.rule_finish(ctx["rule"], reason="tool budget used up")
+        db.log(eid, stage, "DECISION", "Tool budget used up → rule plan")
+    else:
+        try:
+            plan = planner.llm_next(ctx, steps) if mode == "llm" else planner.rule_next(ctx, steps)
+        except llm.LLMError as e:
+            db.log(eid, stage, "DECISION", f"AI planner unavailable ({e}) → rule planner takes over")
+            trace.append(_t(stage, "AI planner failed → rule planner takes over (safe fallback)"))
+            mode = "rules"
+            plan = planner.rule_next(ctx, steps)
+
+    if plan.get("action") != "finish":
+        tool = str(plan.get("action"))
+        args = plan.get("args") if isinstance(plan.get("args"), dict) else {}
+        msg = f"Next step → tool {tool}({', '.join(f'{k}={v}' for k, v in args.items())})" + \
+              (f" — {plan['thought']}" if plan.get("thought") and mode == "llm" else "")
+        db.log(eid, stage, "PLAN", msg, {"plan": plan})
+        return {"plan_ctx": ctx, "plan_mode": mode, "steps": steps, "route": "tool",
+                "pending": {"action": tool, "args": args, "thought": str(plan.get("thought", ""))[:200]},
+                "trace": trace + [_t(stage, msg)]}
+
+    accepted, notes = planner.check_plan(plan, ctx, steps)
+    if accepted is None:
+        db.log(eid, stage, "REFUSAL", f"Plan rejected by code check: {'; '.join(notes)} → rule plan used")
+        trace.append(_t(stage, f"Code check rejected the AI plan ({'; '.join(notes)}) → rule plan used"))
+        accepted, notes2 = planner.check_plan(planner.rule_finish(ctx["rule"]), ctx, steps)
+        notes = notes2
+        if accepted is None:                         # should never happen; keep the raw rule reading
+            r = ctx["rule"]
+            accepted = {"intent": r["intent"], "flight_no": r["flight_no"], "entities": r["entities"]}
+    intent, ents, flight = accepted["intent"], accepted["entities"], accepted["flight_no"]
     route = ROUTES[intent]
-    via += followup
-    msg = f"Intent '{intent}' via {via} → {route} worker" + (f" · flight {flight}" if flight else "")
-    db.log(eid, stage, "DECISION", msg, {"intent": intent, "entities": ents})
-    return {"route": route, "intent": intent, "entities": ents, "flight_no": flight, "trace": [_t(stage, msg)]}
+    msg = (f"Finish → intent '{intent}' → {route} worker" + (f" · flight {flight}" if flight else "")
+           + (f" · {notes[0]}" if notes else "") + " · plan passed code check")
+    db.log(eid, stage, "DECISION", msg, {"intent": intent, "entities": ents, "plan": plan, "mode": mode})
+    return {"route": route, "intent": intent, "entities": ents, "flight_no": flight, "plan_mode": mode,
+            "trace": trace + [_t(stage, msg)]}
+
+
+def n4_tool(s: S):
+    """Stage 4 — act: run the read-only tool the planner asked for and hand the result back to stage 3."""
+    eid, p = s["event_id"], s["pending"]
+    obs = planner.run_tool(p["action"], p.get("args"), s["plan_ctx"])
+    steps = list(s.get("steps") or []) + [{**p, "observation": obs}]
+    short = json.dumps(obs, ensure_ascii=False, default=str)
+    short = short if len(short) <= 170 else short[:167] + "…"
+    db.log(eid, "4 Act (tool)", "TOOL", f"{p['action']} → {short}", {"args": p.get("args"), "observation": obs})
+    return {"steps": steps, "pending": None, "trace": [_t("4 Act (tool)", f"{p['action']} → {short}")]}
 
 
 # ---------------------------------------------------------------- 4a
@@ -662,7 +705,7 @@ def n9_log(s: S):
 
 def build_graph():
     g = StateGraph(S)
-    for name, fn in [("n1_trigger", n1_trigger), ("n2_validate", n2_validate), ("n3_coordinator", n3_coordinator),
+    for name, fn in [("n1_trigger", n1_trigger), ("n2_validate", n2_validate), ("n3_plan", n3_plan), ("n4_tool", n4_tool),
                      ("n4a_reconcile", n4a_reconcile), ("n4b_journey", n4b_journey), ("n4c_respond", n4c_respond),
                      ("n4d_handoff", n4d_handoff), ("n4e_lost", n4e_lost), ("n4f_policy", n4f_policy),
                      ("n4g_nudge_scan", n4g_nudge_scan), ("n4h_directions", n4h_directions), ("n5_state", n5_state), ("n6_guard", n6_guard),
@@ -671,13 +714,14 @@ def build_graph():
     g.add_edge(START, "n1_trigger")
     g.add_edge("n1_trigger", "n2_validate")
     g.add_conditional_edges("n2_validate", lambda s: "blocked" if s.get("blocked") else "ok",
-                            {"blocked": "n6_guard", "ok": "n3_coordinator"})
-    g.add_conditional_edges("n3_coordinator", lambda s: s["route"],
-                            {"feed": "n4a_reconcile", "flight": "n4a_reconcile", "tick": "n4g_nudge_scan",
+                            {"blocked": "n6_guard", "ok": "n3_plan"})
+    g.add_conditional_edges("n3_plan", lambda s: s["route"],
+                            {"tool": "n4_tool", "feed": "n4a_reconcile", "flight": "n4a_reconcile", "tick": "n4g_nudge_scan",
                              "handoff": "n4d_handoff", "lost": "n4e_lost", "policy": "n4f_policy",
                              "directions": "n4h_directions"})
     g.add_conditional_edges("n4a_reconcile", lambda s: "feed" if s["route"] == "feed" else "flight",
                             {"feed": "n5_state", "flight": "n4b_journey"})
+    g.add_edge("n4_tool", "n3_plan")                       # the 3 ⇄ 4 planning loop
     g.add_edge("n4b_journey", "n4c_respond")
     for n in ("n4c_respond", "n4d_handoff", "n4e_lost", "n4f_policy", "n4g_nudge_scan", "n4h_directions"):
         g.add_edge(n, "n5_state")

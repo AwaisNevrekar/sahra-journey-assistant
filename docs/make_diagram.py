@@ -72,8 +72,9 @@ arrow(X + CW / 2, 162, X + CW / 2, 178)
 box(X, 180, CW, 62, "2  Validate & sanitise",
     ["Pydantic schema (gate format, statuses, timezone) · timestamp not in future · prompt-injection / fake-broadcast filter"])
 arrow(X + CW / 2, 242, X + CW / 2, 258)
-box(X, 260, CW, 62, "3  Coordinator",
-    ["Deterministic router (EN/AR/HI, 96-phrase test bank) + chat memory for follow-ups · optional LLM only for 'unknown'"])
+box(X, 260, CW, 62, "3  Plan ⇄ 4 Act — AI model (Groq / Gemini / Ollama) or rule planner picks the next tool",
+    ["tools: context · places · flight by city · read flight · official info → result → plan again · "
+     "code checks the plan · emergencies by code"], tsize=16, lsize=13)
 arrow(X + CW / 2, 322, X + CW / 2, 338)
 
 # workers
@@ -108,7 +109,7 @@ arrow(X + 300, 812, X + 300, 830)
 box(X, 832, CW, 54, "8  Write gateway",
     ["Re-reconciles live feeds: if anything changed since the draft → abort · otherwise one atomic outbox write"])
 arrow(X + CW / 2, 886, X + CW / 2, 900)
-box(X, 902, CW, 40, "9  Log & report  →  10  Streamlit dashboard (traveller app · staff console · live log)", [], tsize=15)
+box(X, 902, CW, 40, "9  Log & report (+ Langfuse)  →  10  Streamlit dashboard (traveller · staff · case replay)", [], tsize=15)
 
 # blocked path
 path(f"M {X} 226 L {X - 14} 226 L {X - 14} 700 L {X - 3} 700", color="#B42318", dash=True,

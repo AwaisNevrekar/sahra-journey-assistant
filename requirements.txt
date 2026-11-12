@@ -3,5 +3,7 @@ langgraph-checkpoint-sqlite>=3.0
 pydantic>=2.7
 streamlit>=1.50
 pandas>=2.0
+# optional: Langfuse tracing (stage 9) — set the keys in .env
+# langfuse>=3.0
 # optional: only needed to re-render docs/flow_diagram.* if rsvg-convert is not installed
 # cairosvg>=2.7

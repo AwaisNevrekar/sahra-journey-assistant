@@ -1,5 +1,6 @@
 """Public API used by the Streamlit app, the autopilot and the test runner."""
 import json
+import os
 import sqlite3
 import uuid
 from datetime import timedelta
@@ -100,15 +101,48 @@ def advance(minutes=1):
 
 
 # ----------------------------------------------------------------- run the graph
+_TRACER = {}
+
+
+def tracing_status():
+    if not (os.getenv("LANGFUSE_PUBLIC_KEY") and os.getenv("LANGFUSE_SECRET_KEY")):
+        return "off (set LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY to enable)"
+    return "on (Langfuse)" if _callbacks() else "keys set, but the langfuse package is not installed"
+
+
+def _callbacks():
+    """Optional Langfuse traces for every LangGraph run (stage 9). Silent no-op when not configured."""
+    if not (os.getenv("LANGFUSE_PUBLIC_KEY") and os.getenv("LANGFUSE_SECRET_KEY")):
+        return []
+    if "h" not in _TRACER:
+        handler = None
+        for mod in ("langfuse.langchain", "langfuse.callback"):          # v3, then v2
+            try:
+                handler = __import__(mod, fromlist=["CallbackHandler"]).CallbackHandler()
+                break
+            except Exception:
+                continue
+        _TRACER["h"] = handler
+    return [_TRACER["h"]] if _TRACER["h"] else []
+
+
+def _cfg(thread_id):
+    cfg = {"configurable": {"thread_id": thread_id}}
+    cb = _callbacks()
+    if cb:
+        cfg.update(callbacks=cb, run_name=f"sahra:{thread_id}", metadata={"langfuse_session_id": thread_id})
+    return cfg
+
+
 def _run(event):
     eid = db.next_id("EVT")
-    cfg = {"configurable": {"thread_id": eid}}
+    cfg = _cfg(eid)
     app().invoke({"event": event, "event_id": eid}, cfg)
     return _pack(eid, cfg)
 
 
 def _pack(eid, cfg):
-    snap = app().get_state(cfg)
+    snap = app().get_state({"configurable": cfg["configurable"]})
     v = snap.values
     pending = bool(snap.next)
     ap = db.approval_by_thread(eid)
@@ -141,7 +175,7 @@ def decide(approval_id, decision, staff_id, note=""):
     ap = db.get_approval(approval_id)
     if not ap or ap["status"] != "PENDING":
         return {"error": f"{approval_id} is not pending"}
-    cfg = {"configurable": {"thread_id": ap["thread_id"]}}
+    cfg = _cfg(ap["thread_id"])
     app().invoke(Command(resume={"decision": decision, "staff_id": staff_id, "note": note}), cfg)
     return _pack(ap["thread_id"], cfg)
 
@@ -168,6 +202,28 @@ def verify_booking(booking_ref, last_name, session_id):
     db.log(None, "Verify", "DECISION", f"Session {session_id[:8]} linked to {p['pax_id']} (no name/ref stored)")
     return {"session_id": session_id, "pax_id": p["pax_id"], "flight_no": p["flight_no"], "lang": p["lang"],
             "mobility": p["mobility"], "location": p["last_seen_zone"]}, "ok"
+
+
+def case_list(limit=60):
+    """Recent cases for the replay view: one row per event, newest first."""
+    rows = db.q("SELECT event_id, ts, summary, detail FROM audit_log WHERE kind='TRIGGER' ORDER BY id DESC LIMIT ?",
+                (limit,))
+    out = []
+    for r in rows:
+        d = json.loads(r["detail"] or "{}")
+        outcome = db.one("SELECT summary FROM audit_log WHERE event_id=? AND kind='OUTCOME' ORDER BY id DESC LIMIT 1",
+                         (r["event_id"],))
+        label = d.get("text") or r["summary"]
+        out.append({"event_id": r["event_id"], "time": clock.hhmm(r["ts"]), "label": label[:70],
+                    "outcome": (outcome or {}).get("summary", "waiting for staff").replace("Outcome ", "")})
+    return out
+
+
+def case_replay(event_id):
+    steps = db.q("SELECT ts, stage, kind, summary FROM audit_log WHERE event_id=? ORDER BY id", (event_id,))
+    msgs = db.q("SELECT ts, audience, recipient, lang, kind, text, approved_by FROM outbox WHERE event_id=? ORDER BY id",
+                (event_id,))
+    return steps, msgs
 
 
 def flight_board():

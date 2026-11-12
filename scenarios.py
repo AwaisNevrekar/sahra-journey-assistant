@@ -1,8 +1,9 @@
-"""Runs the 26-scenario test storyline on a fresh database and writes outputs/test_log.md + test_log.csv.
+"""Runs the 30-scenario test storyline on a fresh database and writes outputs/test_log.md + test_log.csv.
 
     python scenarios.py
 """
 import csv
+import json
 import os
 import sys
 from datetime import datetime
@@ -10,6 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 os.environ.setdefault("SAHRA_OUT", str(ROOT / "outputs" / "test_run"))
+os.environ["SAHRA_LLM"] = "off"          # repeatable results: rule planner, except T27–T30 which use a scripted model
 REPORT_DIR = ROOT / "outputs"
 
 from sahra import clock, db, engine  # noqa: E402
@@ -314,6 +316,60 @@ def main():
     record("T26", "Question router — 96 real phrasings", "Regression", "tests/question_bank.py (EN, AR, HI)", fake,
            f"{ok} of {len(BANK)} questions routed to the right worker", "None", "Every phrasing reaches the right worker",
            [ok == len(BANK)])
+
+    # ---------------- AI planner path (scripted model, so results are repeatable without an API key) -------------
+    from sahra import llm
+    os.environ["SAHRA_LLM"] = "fake"
+    try:
+        # T27 — the model plans: finds the flight by city, reads its live data, then finishes
+        llm.FAKE_QUEUE[:] = [
+            {"thought": "Traveller names a city, not a flight", "action": "find_flight_by_city", "args": {"city": "Paris"}},
+            {"thought": "Check live data before routing", "action": "read_flight", "args": {"flight_no": "SA410"}},
+            {"thought": "It is a gate question", "action": "finish", "intent": "flight", "flight_no": "SA410",
+             "origin": None, "destination": None, "mobility": None}]
+        llm.FAKE_CALLS.clear()
+        r = engine.ask("I'm Rahman, booking K7P2QX. Paris flight, what gate?", {"session_id": "S-ai27"})
+        sent_to_model = json.dumps(llm.FAKE_CALLS, ensure_ascii=False)
+        tools = [t["summary"].split(" →")[0] for t in r["trace"] if t["stage"] == "4 Act (tool)"]
+        record("T27", "AI planner loop: city → flight → live data", "AI planning (3 ⇄ 4 loop)",
+               "'I'm Rahman, booking K7P2QX. Paris flight, what gate?' (scripted model)", r,
+               f"Tools: {', '.join(tools)} → {r['reply']}", "None",
+               "Model calls find_flight_by_city then read_flight, finishes; code checks the plan; template answer "
+               "Gate B8. Model never sees the name or booking reference",
+               [r["outcome"] == "ANSWERED", "Gate B8" in r["reply"], tools == ["find_flight_by_city", "read_flight"],
+                "K7P2QX" not in sent_to_model, "Rahman" not in sent_to_model])
+
+        # T28 — the model invents a flight → code check rejects the plan, rule plan used
+        llm.FAKE_QUEUE[:] = [{"thought": "guess", "action": "finish", "intent": "directions", "flight_no": "SA350",
+                              "origin": None, "destination": None}]
+        r = engine.ask("I'm lost", {"session_id": "S-ai28"})
+        rej = db.q("SELECT summary FROM audit_log WHERE event_id=? AND kind='REFUSAL'", (r["event_id"],))
+        record("T28", "AI plan with an invented flight is rejected", "Safety (plan check)",
+               "'I'm lost' — scripted model claims flight SA350 (never mentioned)", r,
+               (rej[0]["summary"] if rej else "") + " → " + r["reply"], "None",
+               "Code check rejects the invented flight; rule plan asks where they need to go — no wrong gate given",
+               [bool(rej), "invented" in (rej[0]["summary"] if rej else ""), r["outcome"] == "ASKED_DESTINATION",
+                "SA350" not in r["reply"]])
+
+        # T29 — emergencies never go to the model
+        llm.FAKE_QUEUE[:] = [{"action": "finish", "intent": "greeting"}]
+        r = engine.ask("Someone collapsed near gate B4!", {"session_id": "S-ai29"})
+        record("T29", "Medical request bypasses the AI model", "Safety (code route)",
+               "'Someone collapsed near gate B4!' with a misleading scripted model", r, r["reply"],
+               "Medical team + duty manager (URGENT)", "Routed by code; the model is not called (its reply stays unused)",
+               [r["outcome"] == "ESCALATED_MEDICAL_URGENT", len(llm.FAKE_QUEUE) == 1, "Gate B4" in r["reply"]])
+
+        # T30 — model down / timeout → rule planner takes over
+        llm.FAKE_QUEUE[:] = [Exception("timeout after 20 s")]
+        r = engine.ask("Which gate is SA118?", {"session_id": "S-ai30"})
+        record("T30", "AI model unavailable → safe fallback", "Resilience",
+               "'Which gate is SA118?' while the model times out", r, r["reply"], "None",
+               "Rule planner takes over in the same request; correct confirmed answer",
+               [r["outcome"] == "ANSWERED", "Gate A2" in r["reply"],
+                any("rule planner takes over" in t["summary"] for t in r["trace"])])
+    finally:
+        os.environ["SAHRA_LLM"] = "off"
+        llm.FAKE_QUEUE.clear()
 
     write_reports()
     return all(row["Result"] == "PASS" for row in ROWS)

@@ -3,6 +3,21 @@ import os
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent.parent
+
+
+def _load_env_file(path):
+    """Minimal .env support: KEY=VALUE lines; real environment variables win."""
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+
+_load_env_file(BASE / ".env")
 DATA = BASE / "data"
 OUT = Path(os.getenv("SAHRA_OUT", BASE / "outputs"))
 DB_PATH = OUT / "sahra.db"
