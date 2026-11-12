@@ -1,0 +1,77 @@
+{
+ "note": "MOCK of Sahra Airport's officially published passenger guidance. The assistant may only quote these entries; it never adds interpretation or exceptions. Visa/immigration has no entry on purpose: those questions are always referred to official authorities.",
+ "entries": [
+  {
+   "id": "SEC-LIQ",
+   "topic": "security",
+   "keywords": ["liquid", "liquids", " ml", "ml ", "perfume", "gel", "aerosol", "water bottle", "cream", "سوائل", "عطر", "तरल", "परफ्यूम"],
+   "source": "Sahra Airport Security - Passenger Guidance v2026.3",
+   "reviewed": "2026-09-01",
+   "text": {
+    "en": "Liquids, aerosols and gels in cabin bags must be in containers of 100 ml or less, all fitting in one clear, resealable 1-litre bag per passenger. Medicines and baby food needed for the journey may exceed this but must be shown at screening. Larger containers must go in checked baggage.",
+    "ar": "يجب أن تكون السوائل والبخاخات والمواد الهلامية في حقائب المقصورة في عبوات سعة كل منها 100 مل أو أقل، وجميعها داخل كيس شفاف واحد قابل للإغلاق سعته لتر واحد لكل مسافر. يُسمح بتجاوز ذلك للأدوية وطعام الأطفال اللازم للرحلة بشرط إبرازها عند التفتيش. يجب وضع العبوات الأكبر في الأمتعة المسجلة.",
+    "hi": "केबिन बैग में तरल, एरोसोल और जेल 100 मि.ली. या उससे कम के कंटेनरों में होने चाहिए, और सभी प्रति यात्री एक पारदर्शी, दोबारा बंद होने वाले 1-लीटर बैग में आने चाहिए। यात्रा के लिए ज़रूरी दवाइयाँ और शिशु आहार इससे अधिक हो सकते हैं, लेकिन स्क्रीनिंग पर दिखाने होंगे। बड़े कंटेनर चेक-इन बैगेज में रखें।"
+   }
+  },
+  {
+   "id": "SEC-PB",
+   "topic": "security",
+   "keywords": ["power bank", "powerbank", "battery", "batteries", "lithium", "بطارية", "باور بانك", "पावर बैंक", "बैटरी"],
+   "source": "Sahra Airport Security - Passenger Guidance v2026.3",
+   "reviewed": "2026-09-01",
+   "text": {
+    "en": "Power banks and spare lithium batteries must be carried in cabin baggage only, never in checked bags. Each must be 100 Wh or less; 100-160 Wh needs airline approval; above 160 Wh is not allowed.",
+    "ar": "يجب حمل بطاريات الشحن المتنقلة وبطاريات الليثيوم الاحتياطية في حقائب المقصورة فقط، وليس في الأمتعة المسجلة. يجب ألا تتجاوز سعة كل منها 100 واط/ساعة؛ وما بين 100 و160 واط/ساعة يتطلب موافقة شركة الطيران؛ وما يزيد على 160 واط/ساعة غير مسموح به.",
+    "hi": "पावर बैंक और अतिरिक्त लिथियम बैटरियाँ केवल केबिन बैगेज में ले जाएँ, चेक-इन बैग में कभी नहीं। हर एक 100 Wh या उससे कम होनी चाहिए; 100-160 Wh के लिए एयरलाइन की अनुमति चाहिए; 160 Wh से अधिक की अनुमति नहीं है।"
+   }
+  },
+  {
+   "id": "SEC-SHARP",
+   "topic": "security",
+   "keywords": ["knife", "knives", "scissors", "blade", "razor", "sharp", "سكين", "مقص", "चाकू", "कैंची"],
+   "source": "Sahra Airport Security - Passenger Guidance v2026.3",
+   "reviewed": "2026-09-01",
+   "text": {
+    "en": "Knives and blades of any length, and scissors with blades longer than 6 cm, are not allowed in cabin baggage. Pack them in checked baggage.",
+    "ar": "لا يُسمح في حقائب المقصورة بالسكاكين والشفرات بأي طول، ولا بالمقصات التي يزيد طول شفرتها على 6 سم. ضعها في الأمتعة المسجلة.",
+    "hi": "किसी भी लंबाई के चाकू और ब्लेड, तथा 6 से.मी. से लंबे ब्लेड वाली कैंची केबिन बैगेज में नहीं ले जा सकते। इन्हें चेक-इन बैगेज में रखें।"
+   }
+  },
+  {
+   "id": "FAC-WIFI",
+   "topic": "facility",
+   "keywords": ["wifi", "wi-fi", "internet", "واي فاي", "إنترنت", "वाईफाई", "वाई-फाई", "इंटरनेट"],
+   "source": "Sahra Airport - Facilities Guide",
+   "reviewed": "2026-10-15",
+   "text": {
+    "en": "Free Wi-Fi is available throughout the terminal: connect to 'Sahra-Free-WiFi' and accept the terms. No password is needed.",
+    "ar": "تتوفر خدمة واي فاي مجانية في جميع أنحاء المبنى: اتصل بشبكة 'Sahra-Free-WiFi' ووافق على الشروط. لا حاجة لكلمة مرور.",
+    "hi": "पूरे टर्मिनल में मुफ़्त वाई-फाई उपलब्ध है: 'Sahra-Free-WiFi' से कनेक्ट करें और शर्तें स्वीकार करें। पासवर्ड की ज़रूरत नहीं है।"
+   }
+  },
+  {
+   "id": "FAC-PRAYER",
+   "topic": "facility",
+   "keywords": ["prayer", "pray", "mosque", "namaz", "صلاة", "مصلى", "नमाज़", "नमाज", "प्रार्थना"],
+   "source": "Sahra Airport - Facilities Guide",
+   "reviewed": "2026-10-15",
+   "text": {
+    "en": "Prayer rooms (men and women) are next to the Central Plaza, about 1 minute from Duty Free, with a second room near Gate B6. Ablution facilities are inside.",
+    "ar": "تقع غرف الصلاة (للرجال والنساء) بجوار الساحة المركزية، على بعد دقيقة تقريباً من السوق الحرة، وتوجد غرفة أخرى قرب البوابة B6. مرافق الوضوء متوفرة بالداخل.",
+    "hi": "नमाज़/प्रार्थना कक्ष (पुरुष और महिला) सेंट्रल प्लाज़ा के पास हैं, ड्यूटी फ्री से लगभग 1 मिनट, और एक और कक्ष गेट B6 के पास है। वुज़ू की सुविधा अंदर है।"
+   }
+  },
+  {
+   "id": "FAC-FAMILY",
+   "topic": "facility",
+   "keywords": ["family zone", "play area", "nursing", "baby changing", "changing room", "منطقة العائلات", "ألعاب الأطفال", "फैमिली ज़ोन", "प्ले एरिया"],
+   "source": "Sahra Airport - Facilities Guide",
+   "reviewed": "2026-10-15",
+   "text": {
+    "en": "The Family Zone next to the Central Plaza has a play area, a nursing room and baby-changing facilities. Family toilets are also at each pier entrance.",
+    "ar": "تضم منطقة العائلات بجوار الساحة المركزية منطقة ألعاب وغرفة رضاعة ومرافق لتغيير الحفاضات. وتتوفر دورات مياه عائلية عند مدخل كل رصيف.",
+    "hi": "सेंट्रल प्लाज़ा के पास फैमिली ज़ोन में प्ले एरिया, नर्सिंग रूम और बेबी-चेंजिंग सुविधा है। हर पियर के प्रवेश पर फैमिली टॉयलेट भी हैं।"
+   }
+  }
+ ]
+}

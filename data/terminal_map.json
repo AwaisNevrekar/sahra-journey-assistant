@@ -1,0 +1,305 @@
+{
+ "note": "Single-terminal walking graph, distances in metres (mock survey).",
+ "nodes": {
+  "CHECKIN_HALL": {
+   "label": "Check-in Hall",
+   "airside": false
+  },
+  "PASSPORT_CONTROL": {
+   "label": "Passport Control",
+   "checkpoint": true,
+   "airside": false
+  },
+  "SECURITY": {
+   "label": "Security",
+   "checkpoint": true,
+   "airside": false
+  },
+  "SECURITY_EXIT": {
+   "label": "after Security",
+   "airside": true
+  },
+  "CENTRAL_PLAZA": {
+   "label": "Central Plaza (Duty Free)",
+   "airside": true
+  },
+  "FOOD_COURT": {
+   "label": "Food Court",
+   "airside": true
+  },
+  "PRAYER_ROOM": {
+   "label": "Prayer Room",
+   "airside": true
+  },
+  "FAMILY_ZONE": {
+   "label": "Family Zone",
+   "airside": true
+  },
+  "A_JUNCTION": {
+   "label": "Pier A entrance",
+   "airside": true
+  },
+  "B_JUNCTION": {
+   "label": "Pier B entrance",
+   "airside": true
+  },
+  "A1": {
+   "label": "Gate A1",
+   "airside": true,
+   "gate": true
+  },
+  "A2": {
+   "label": "Gate A2",
+   "airside": true,
+   "gate": true
+  },
+  "A3": {
+   "label": "Gate A3",
+   "airside": true,
+   "gate": true
+  },
+  "A4": {
+   "label": "Gate A4",
+   "airside": true,
+   "gate": true
+  },
+  "A5": {
+   "label": "Gate A5",
+   "airside": true,
+   "gate": true
+  },
+  "A6": {
+   "label": "Gate A6",
+   "airside": true,
+   "gate": true
+  },
+  "B1": {
+   "label": "Gate B1",
+   "airside": true,
+   "gate": true
+  },
+  "B2": {
+   "label": "Gate B2",
+   "airside": true,
+   "gate": true
+  },
+  "B3": {
+   "label": "Gate B3",
+   "airside": true,
+   "gate": true
+  },
+  "B4": {
+   "label": "Gate B4",
+   "airside": true,
+   "gate": true
+  },
+  "B5": {
+   "label": "Gate B5",
+   "airside": true,
+   "gate": true
+  },
+  "B6": {
+   "label": "Gate B6",
+   "airside": true,
+   "gate": true
+  },
+  "B7": {
+   "label": "Gate B7",
+   "airside": true,
+   "gate": true
+  },
+  "B8": {
+   "label": "Gate B8",
+   "airside": true,
+   "gate": true
+  },
+  "B9": {
+   "label": "Gate B9",
+   "airside": true,
+   "gate": true
+  },
+  "B10": {
+   "label": "Gate B10",
+   "airside": true,
+   "gate": true
+  },
+  "B11": {
+   "label": "Gate B11",
+   "airside": true,
+   "gate": true
+  },
+  "B12": {
+   "label": "Gate B12",
+   "airside": true,
+   "gate": true
+  }
+ },
+ "edges": [
+  [
+   "CHECKIN_HALL",
+   "PASSPORT_CONTROL",
+   100
+  ],
+  [
+   "PASSPORT_CONTROL",
+   "SECURITY",
+   50
+  ],
+  [
+   "SECURITY",
+   "SECURITY_EXIT",
+   40
+  ],
+  [
+   "SECURITY_EXIT",
+   "CENTRAL_PLAZA",
+   60
+  ],
+  [
+   "CENTRAL_PLAZA",
+   "FOOD_COURT",
+   90
+  ],
+  [
+   "CENTRAL_PLAZA",
+   "PRAYER_ROOM",
+   70
+  ],
+  [
+   "CENTRAL_PLAZA",
+   "FAMILY_ZONE",
+   80
+  ],
+  [
+   "CENTRAL_PLAZA",
+   "A_JUNCTION",
+   150
+  ],
+  [
+   "CENTRAL_PLAZA",
+   "B_JUNCTION",
+   200
+  ],
+  [
+   "FOOD_COURT",
+   "B_JUNCTION",
+   180
+  ],
+  [
+   "A_JUNCTION",
+   "A1",
+   40
+  ],
+  [
+   "A1",
+   "A2",
+   60
+  ],
+  [
+   "A2",
+   "A3",
+   60
+  ],
+  [
+   "A3",
+   "A4",
+   60
+  ],
+  [
+   "A4",
+   "A5",
+   60
+  ],
+  [
+   "A5",
+   "A6",
+   60
+  ],
+  [
+   "B_JUNCTION",
+   "B1",
+   60
+  ],
+  [
+   "B1",
+   "B2",
+   70
+  ],
+  [
+   "B2",
+   "B3",
+   70
+  ],
+  [
+   "B3",
+   "B4",
+   70
+  ],
+  [
+   "B4",
+   "B5",
+   70
+  ],
+  [
+   "B5",
+   "B6",
+   70
+  ],
+  [
+   "B6",
+   "B7",
+   70
+  ],
+  [
+   "B7",
+   "B8",
+   70
+  ],
+  [
+   "B8",
+   "B9",
+   70
+  ],
+  [
+   "B9",
+   "B10",
+   70
+  ],
+  [
+   "B10",
+   "B11",
+   70
+  ],
+  [
+   "B11",
+   "B12",
+   70
+  ]
+ ],
+ "aliases": {
+  "check-in hall": "CHECKIN_HALL",
+  "check in hall": "CHECKIN_HALL",
+  "check-in": "CHECKIN_HALL",
+  "checkin": "CHECKIN_HALL",
+  "passport control": "PASSPORT_CONTROL",
+  "after security": "SECURITY_EXIT",
+  "security exit": "SECURITY_EXIT",
+  "security": "SECURITY",
+  "central plaza": "CENTRAL_PLAZA",
+  "duty free": "CENTRAL_PLAZA",
+  "plaza": "CENTRAL_PLAZA",
+  "food court": "FOOD_COURT",
+  "prayer room": "PRAYER_ROOM",
+  "family zone": "FAMILY_ZONE",
+  "منطقة المطاعم": "FOOD_COURT",
+  "المطاعم": "FOOD_COURT",
+  "السوق الحرة": "CENTRAL_PLAZA",
+  "الساحة المركزية": "CENTRAL_PLAZA",
+  "تسجيل الوصول": "CHECKIN_HALL",
+  "المصلى": "PRAYER_ROOM",
+  "फूड कोर्ट": "FOOD_COURT",
+  "ड्यूटी फ्री": "CENTRAL_PLAZA",
+  "चेक-इन": "CHECKIN_HALL",
+  "सेंट्रल प्लाज़ा": "CENTRAL_PLAZA"
+ }
+}

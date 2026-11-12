@@ -1,0 +1,179 @@
+{
+ "note": "Seed snapshot of the two live feeds. minutes_ago is relative to the demo start time.",
+ "records": [
+  {
+   "source": "FIDS",
+   "flight_no": "SA118",
+   "status": "ON_TIME",
+   "minutes_ago": 2,
+   "gate": "A2",
+   "boarding_time": "2026-11-12T14:30:00+04:00",
+   "est_time": "2026-11-12T15:10:00+04:00"
+  },
+  {
+   "source": "AIRLINE",
+   "flight_no": "SA118",
+   "status": "ON_TIME",
+   "minutes_ago": 4,
+   "gate": "A2",
+   "boarding_time": "2026-11-12T14:30:00+04:00",
+   "est_time": "2026-11-12T15:10:00+04:00"
+  },
+  {
+   "source": "FIDS",
+   "flight_no": "SA204",
+   "status": "ON_TIME",
+   "minutes_ago": 2,
+   "gate": "B3",
+   "boarding_time": "2026-11-12T14:35:00+04:00",
+   "est_time": "2026-11-12T15:05:00+04:00"
+  },
+  {
+   "source": "AIRLINE",
+   "flight_no": "SA204",
+   "status": "ON_TIME",
+   "minutes_ago": 5,
+   "gate": "B3",
+   "boarding_time": "2026-11-12T14:35:00+04:00",
+   "est_time": "2026-11-12T15:05:00+04:00"
+  },
+  {
+   "source": "FIDS",
+   "flight_no": "SA410",
+   "status": "ON_TIME",
+   "minutes_ago": 3,
+   "gate": "B8",
+   "boarding_time": "2026-11-12T15:25:00+04:00",
+   "est_time": "2026-11-12T16:00:00+04:00"
+  },
+  {
+   "source": "AIRLINE",
+   "flight_no": "SA410",
+   "status": "ON_TIME",
+   "minutes_ago": 6,
+   "gate": "B8",
+   "boarding_time": "2026-11-12T15:25:00+04:00",
+   "est_time": "2026-11-12T16:00:00+04:00"
+  },
+  {
+   "source": "FIDS",
+   "flight_no": "DX221",
+   "status": "ON_TIME",
+   "minutes_ago": 3,
+   "gate": "A6",
+   "boarding_time": "2026-11-12T15:45:00+04:00",
+   "est_time": "2026-11-12T16:20:00+04:00"
+  },
+  {
+   "source": "AIRLINE",
+   "flight_no": "DX221",
+   "status": "ON_TIME",
+   "minutes_ago": 7,
+   "gate": "A6",
+   "boarding_time": "2026-11-12T15:45:00+04:00",
+   "est_time": "2026-11-12T16:20:00+04:00"
+  },
+  {
+   "source": "FIDS",
+   "flight_no": "SA350",
+   "status": "ON_TIME",
+   "minutes_ago": 2,
+   "gate": "B5",
+   "boarding_time": "2026-11-12T16:05:00+04:00",
+   "est_time": "2026-11-12T16:40:00+04:00"
+  },
+  {
+   "source": "AIRLINE",
+   "flight_no": "SA350",
+   "status": "ON_TIME",
+   "minutes_ago": 4,
+   "gate": "B5",
+   "boarding_time": "2026-11-12T16:05:00+04:00",
+   "est_time": "2026-11-12T16:40:00+04:00"
+  },
+  {
+   "source": "FIDS",
+   "flight_no": "SA615",
+   "status": "ON_TIME",
+   "minutes_ago": 3,
+   "gate": "A3",
+   "boarding_time": "2026-11-12T16:25:00+04:00",
+   "est_time": "2026-11-12T17:00:00+04:00"
+  },
+  {
+   "source": "AIRLINE",
+   "flight_no": "SA615",
+   "status": "ON_TIME",
+   "minutes_ago": 5,
+   "gate": "A3",
+   "boarding_time": "2026-11-12T16:25:00+04:00",
+   "est_time": "2026-11-12T17:00:00+04:00"
+  },
+  {
+   "source": "FIDS",
+   "flight_no": "DX330",
+   "status": "ON_TIME",
+   "minutes_ago": 5,
+   "gate": "A5",
+   "boarding_time": "2026-11-12T14:55:00+04:00",
+   "est_time": "2026-11-12T15:30:00+04:00"
+  },
+  {
+   "source": "AIRLINE",
+   "flight_no": "DX330",
+   "status": "ON_TIME",
+   "minutes_ago": 8,
+   "gate": "A7",
+   "boarding_time": "2026-11-12T14:55:00+04:00",
+   "est_time": "2026-11-12T15:30:00+04:00"
+  },
+  {
+   "source": "FIDS",
+   "flight_no": "OR512",
+   "status": "ON_TIME",
+   "minutes_ago": 40,
+   "gate": "A4",
+   "boarding_time": "2026-11-12T14:25:00+04:00",
+   "est_time": "2026-11-12T15:00:00+04:00"
+  },
+  {
+   "source": "FIDS",
+   "flight_no": "SA077",
+   "status": "LANDED",
+   "minutes_ago": 2,
+   "est_time": "2026-11-12T14:12:00+04:00",
+   "belt": 4
+  },
+  {
+   "source": "AIRLINE",
+   "flight_no": "SA077",
+   "status": "LANDED",
+   "minutes_ago": 3,
+   "est_time": "2026-11-12T14:12:00+04:00",
+   "belt": 4
+  }
+ ],
+ "queues": [
+  {
+   "checkpoint": "PASSPORT_CONTROL",
+   "wait_min": 6,
+   "minutes_ago": 2
+  },
+  {
+   "checkpoint": "SECURITY",
+   "wait_min": 9,
+   "minutes_ago": 25
+  }
+ ],
+ "health": {
+  "FIDS": {
+   "OR512": "frozen"
+  },
+  "AIRLINE": {
+   "OR512": "down"
+  },
+  "QUEUE": {
+   "SECURITY": "offline"
+  }
+ }
+}

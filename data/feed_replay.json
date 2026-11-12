@@ -1,0 +1,157 @@
+{
+ "note": "Scripted live-feed storyline replayed by the autopilot (python -m sahra.autopilot or the dashboard toggle).",
+ "events": [
+  {
+   "id": "R01",
+   "at": "2026-11-12T14:02:00+04:00",
+   "label": "SA204 gate change appears on display system",
+   "record": {
+    "source": "FIDS",
+    "flight_no": "SA204",
+    "status": "ON_TIME",
+    "gate": "B11",
+    "boarding_time": "2026-11-12T14:35:00+04:00",
+    "est_time": "2026-11-12T15:05:00+04:00"
+   }
+  },
+  {
+   "id": "R02",
+   "at": "2026-11-12T14:03:00+04:00",
+   "label": "Airline feed confirms SA204 \u2192 B11",
+   "record": {
+    "source": "AIRLINE",
+    "flight_no": "SA204",
+    "status": "ON_TIME",
+    "gate": "B11",
+    "boarding_time": "2026-11-12T14:35:00+04:00",
+    "est_time": "2026-11-12T15:05:00+04:00"
+   }
+  },
+  {
+   "id": "R03",
+   "at": "2026-11-12T14:07:00+04:00",
+   "label": "Airline reports SA410 delay",
+   "record": {
+    "source": "AIRLINE",
+    "flight_no": "SA410",
+    "status": "DELAYED",
+    "gate": "B8",
+    "boarding_time": "2026-11-12T16:10:00+04:00",
+    "est_time": "2026-11-12T16:45:00+04:00"
+   }
+  },
+  {
+   "id": "R04",
+   "at": "2026-11-12T14:08:00+04:00",
+   "label": "Display system shows SA410 delay",
+   "record": {
+    "source": "FIDS",
+    "flight_no": "SA410",
+    "status": "DELAYED",
+    "gate": "B8",
+    "boarding_time": "2026-11-12T16:10:00+04:00",
+    "est_time": "2026-11-12T16:45:00+04:00"
+   }
+  },
+  {
+   "id": "R05",
+   "at": "2026-11-12T14:09:00+04:00",
+   "label": "DX221 cancelled on display system",
+   "record": {
+    "source": "FIDS",
+    "flight_no": "DX221",
+    "status": "CANCELLED",
+    "gate": "A6"
+   }
+  },
+  {
+   "id": "R06",
+   "at": "2026-11-12T14:09:00+04:00",
+   "label": "Airline confirms DX221 cancellation",
+   "record": {
+    "source": "AIRLINE",
+    "flight_no": "DX221",
+    "status": "CANCELLED",
+    "gate": "A6"
+   }
+  },
+  {
+   "id": "R07",
+   "at": "2026-11-12T14:11:00+04:00",
+   "label": "SA350 gate change on display",
+   "record": {
+    "source": "FIDS",
+    "flight_no": "SA350",
+    "status": "ON_TIME",
+    "gate": "B9",
+    "boarding_time": "2026-11-12T16:05:00+04:00",
+    "est_time": "2026-11-12T16:40:00+04:00"
+   }
+  },
+  {
+   "id": "R08",
+   "at": "2026-11-12T14:11:00+04:00",
+   "label": "Airline confirms SA350 \u2192 B9",
+   "record": {
+    "source": "AIRLINE",
+    "flight_no": "SA350",
+    "status": "ON_TIME",
+    "gate": "B9",
+    "boarding_time": "2026-11-12T16:05:00+04:00",
+    "est_time": "2026-11-12T16:40:00+04:00"
+   }
+  },
+  {
+   "id": "R09",
+   "at": "2026-11-12T14:13:00+04:00",
+   "label": "Airline reports SA615 delay to 17:30",
+   "record": {
+    "source": "AIRLINE",
+    "flight_no": "SA615",
+    "status": "DELAYED",
+    "gate": "A3",
+    "boarding_time": "2026-11-12T16:55:00+04:00",
+    "est_time": "2026-11-12T17:30:00+04:00"
+   }
+  },
+  {
+   "id": "R10",
+   "at": "2026-11-12T14:13:00+04:00",
+   "label": "Display shows SA615 17:30",
+   "record": {
+    "source": "FIDS",
+    "flight_no": "SA615",
+    "status": "DELAYED",
+    "gate": "A3",
+    "boarding_time": "2026-11-12T16:55:00+04:00",
+    "est_time": "2026-11-12T17:30:00+04:00"
+   }
+  },
+  {
+   "id": "R11",
+   "at": "2026-11-12T14:15:00+04:00",
+   "label": "Airline extends SA615 delay to 18:00",
+   "record": {
+    "source": "AIRLINE",
+    "flight_no": "SA615",
+    "status": "DELAYED",
+    "gate": "A3",
+    "boarding_time": "2026-11-12T17:25:00+04:00",
+    "est_time": "2026-11-12T18:00:00+04:00"
+   }
+  },
+  {
+   "id": "R12",
+   "at": "2026-11-12T14:16:00+04:00",
+   "label": "Display shows SA615 18:00",
+   "record": {
+    "source": "FIDS",
+    "flight_no": "SA615",
+    "status": "DELAYED",
+    "gate": "A3",
+    "boarding_time": "2026-11-12T17:25:00+04:00",
+    "est_time": "2026-11-12T18:00:00+04:00"
+   }
+  }
+ ]
+}
