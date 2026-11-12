@@ -1,4 +1,4 @@
-"""Runs the 21-scenario test storyline on a fresh database and writes outputs/test_log.md + test_log.csv.
+"""Runs the 26-scenario test storyline on a fresh database and writes outputs/test_log.md + test_log.csv.
 
     python scenarios.py
 """
@@ -13,6 +13,11 @@ os.environ.setdefault("SAHRA_OUT", str(ROOT / "outputs" / "test_run"))
 REPORT_DIR = ROOT / "outputs"
 
 from sahra import clock, db, engine  # noqa: E402
+
+try:                                   # Windows consoles / pipes default to cp1252
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 
 DAY = "2026-11-12T"
 ROWS = []
@@ -265,6 +270,50 @@ def main():
            "AIRLINE sends gate 'Z99' timestamped 70 min in the future", r, after["reply"], "Ops control alerted (feed rejected)",
            "Record rejected at Stage 2; stored data unchanged (still Gate A2)",
            [r["outcome"] == "FEED_REJECTED_NO_CHANGE", "A2" in after["reply"]])
+
+    # T22 — "I'm lost": the assistant asks, remembers, and finishes the route over three turns
+    at("14:21")
+    sess = {"session_id": "S-lost22"}
+    r1 = engine.ask("I'm lost", sess)
+    r2 = engine.ask("gate B11", sess)
+    r = engine.ask("I'm at the food court", sess)
+    record("T22", "\"I'm lost\" — three-turn conversation", "Normal (directions)",
+           "Traveller: 'I'm lost' → 'gate B11' → 'I'm at the food court'", r, f"{r1['reply']} | {r2['reply']} | {r['reply']}",
+           "None", "Asks where to go, then where they are, then gives route, distance, walk time and signs to follow",
+           [r1["outcome"] == "ASKED_DESTINATION", r2["outcome"] == "DIRECTIONS_SIGNS_ASKED_LOCATION",
+            r["outcome"] == "DIRECTIONS_GIVEN", "940 m" in r["reply"], "Gates B1–B12" in r["reply"]])
+
+    # T23 — linked passenger says "I'm lost" → route to their own confirmed gate
+    sess, _ = engine.verify_booking("K7P2QX", "Rahman", "S-lost23")
+    r = engine.ask("I'm lost", sess)
+    record("T23", "Linked passenger is lost → route to own gate", "Normal (directions)",
+           "Verified SA204 passenger after Security: 'I'm lost'", r, r["reply"], "None",
+           "Uses the CONFIRMED gate (B11 after the approved change) and the passenger's location; no question needed",
+           [r["outcome"] == "DIRECTIONS_GIVEN", "Gate B11" in r["reply"], "after Security" in r["reply"]])
+
+    # T24 — directions to a gate the feeds disagree on → refuse to guess
+    sess, _ = engine.verify_booking("E9R2TY", "Mostafa", "S-lost24")
+    r = engine.ask("How do I get to my gate?", sess)
+    record("T24", "Directions to a gate under feed conflict", "Refuse to guess",
+           "Verified DX330 passenger asks the way to their gate (A5 vs A7)", r, r["reply"], "Ops already alerted (T07)",
+           "Won't send the traveller to either gate; sends them to Central Plaza and the screens",
+           [r["outcome"] == "REFUSED_TO_GUESS", "A5" not in r["reply"], "A7" not in r["reply"]])
+
+    # T25 — a landside place asked from airside → redirected, never routed back through security
+    r = engine.ask("Where is lost and found? I'm at the food court", {"session_id": "S-lost25"})
+    record("T25", "Lost & Found asked from airside", "Safety (wayfinding)",
+           "Traveller at Food Court asks for Lost & Found (before security)", r, r["reply"], "None",
+           "Explains it's before security; routes to the Information Desk instead",
+           [r["outcome"] == "DIRECTIONS_REDIRECTED", "Information Desk" in r["reply"]])
+
+    # T26 — router regression bank (96 real phrasings, EN/AR/HI)
+    from tests.question_bank import BANK
+    from sahra import intents
+    ok = sum(1 for q, e, f, loc in BANK if intents.classify(q)[0] == e)
+    fake = {"trace": [{"stage": "3 Coordinator"}], "outcome": f"{ok}/{len(BANK)} ROUTED_CORRECTLY", "quality": None}
+    record("T26", "Question router — 96 real phrasings", "Regression", "tests/question_bank.py (EN, AR, HI)", fake,
+           f"{ok} of {len(BANK)} questions routed to the right worker", "None", "Every phrasing reaches the right worker",
+           [ok == len(BANK)])
 
     write_reports()
     return all(row["Result"] == "PASS" for row in ROWS)

@@ -1,0 +1,21 @@
+[client]
+toolbarMode = "minimal"
+
+[theme]
+font = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans', 'Noto Sans Arabic', 'Noto Sans Devanagari', sans-serif"
+baseRadius = "0.75rem"
+
+[theme.light]
+primaryColor = "#0A5C5A"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F5F5F7"
+textColor = "#1D1D1F"
+
+[theme.dark]
+primaryColor = "#3FBFB8"
+backgroundColor = "#1C1C1E"
+secondaryBackgroundColor = "#2C2C2E"
+textColor = "#F5F5F7"
+
+[browser]
+gatherUsageStats = false

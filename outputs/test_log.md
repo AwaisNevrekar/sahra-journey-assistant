@@ -1,6 +1,6 @@
 # Sahra Journey Assistant — Test Log
 
-Run: simulated day 2026-11-12, 14:00–14:20 (Asia/Dubai) · **21/21 passed** · 11 cases escalate to a human, refuse to guess or block (T04, T07, T08, T11, T13, T14, T15, T17, T18, T19, T21).
+Run: simulated day 2026-11-12, 14:00–14:20 (Asia/Dubai) · **26/26 passed** · 12 cases escalate to a human, refuse to guess or block (T04, T07, T08, T11, T13, T14, T15, T17, T18, T19, T21, T24).
 
 Every case runs the full LangGraph pipeline (1 Trigger → 2 Validate → 3 Coordinator → 4 Worker → 5 Remember → 6 Guard → [7 Approval] → 8 Write gateway → 9 Log). The numbers in 'Steps' are the stages that ran.
 
@@ -27,6 +27,11 @@ Every case runs the full LangGraph pipeline (1 Trigger → 2 Validate → 3 Coor
 | T19 | Lost item report with possible match | Hand-off (verify) | 1 → 2 → 3 → 4e → 5 → 6 → 8 → 9 | — | `LOGGED_MATCH_TO_STAFF` | Lost & Found team verifies ownership | PASS |
 | T20 | Arrival baggage belt (Hindi) | Normal | 1 → 2 → 3 → 4a → 4b → 4c → 5 → 6 → 8 → 9 | CONFIRMED | `ANSWERED` | None | PASS |
 | T21 | Malformed / future-dated feed record | Blocked (data validation) | 1 → 2 → 6 → 8 → 9 | — | `FEED_REJECTED_NO_CHANGE` | Ops control alerted (feed rejected) | PASS |
+| T22 | "I'm lost" — three-turn conversation | Normal (directions) | 1 → 2 → 3 → 4h → 5 → 6 → 8 → 9 | — | `DIRECTIONS_GIVEN` | None | PASS |
+| T23 | Linked passenger is lost → route to own gate | Normal (directions) | 1 → 2 → 3 → 4h → 5 → 6 → 8 → 9 | CONFIRMED | `DIRECTIONS_GIVEN` | None | PASS |
+| T24 | Directions to a gate under feed conflict | Refuse to guess | 1 → 2 → 3 → 4h → 5 → 6 → 8 → 9 | CONFLICT | `REFUSED_TO_GUESS` | Ops already alerted (T07) | PASS |
+| T25 | Lost & Found asked from airside | Safety (wayfinding) | 1 → 2 → 3 → 4h → 5 → 6 → 8 → 9 | — | `DIRECTIONS_REDIRECTED` | None | PASS |
+| T26 | Question router — 96 real phrasings | Regression | 3 | — | `96/96 ROUTED_CORRECTLY` | None | PASS |
 
 ## Case details
 
@@ -155,3 +160,33 @@ Every case runs the full LangGraph pipeline (1 Trigger → 2 Validate → 3 Coor
 - **Expected:** Record rejected at Stage 2; stored data unchanged (still Gate A2)
 - **Outcome:** `FEED_REJECTED_NO_CHANGE`
 - **Output:** ✈️ SA118 to Mumbai: Gate A2 · Boarding 14:30 · Status: On time · Departs 15:10
+
+### T22 — "I'm lost" — three-turn conversation (PASS)
+- **Input:** Traveller: 'I'm lost' → 'gate B11' → 'I'm at the food court'
+- **Expected:** Asks where to go, then where they are, then gives route, distance, walk time and signs to follow
+- **Outcome:** `DIRECTIONS_GIVEN`
+- **Output:** 🧭 Don't worry — I'll help you find your way. Where do you need to go (your flight number or gate, toilets, prayer room…)? And what can you see near you — a gate number, the Food Court or Duty Free? Any staff member or the Informat
+
+### T23 — Linked passenger is lost → route to own gate (PASS)
+- **Input:** Verified SA204 passenger after Security: 'I'm lost'
+- **Expected:** Uses the CONFIRMED gate (B11 after the approved change) and the passenger's location; no question needed
+- **Outcome:** `DIRECTIONS_GIVEN`
+- **Output:** Your flight SA204 boards at 14:35 from Gate B11. 🧭 To Gate B11 from after Security: about 15 min walk (1020 m). Route: after Security → Central Plaza (Duty Free) → Pier B entrance → Gate B11. Follow the overhead signs for “Gates B
+
+### T24 — Directions to a gate under feed conflict (PASS)
+- **Input:** Verified DX330 passenger asks the way to their gate (A5 vs A7)
+- **Expected:** Won't send the traveller to either gate; sends them to Central Plaza and the screens
+- **Outcome:** `REFUSED_TO_GUESS`
+- **Output:** 🧭 The gate for DX330 isn't confirmed yet, so I won't send you the wrong way. Go to the Central Plaza (Duty Free) — both piers start there — and check the departure screens, or ask me again in a few minutes.
+
+### T25 — Lost & Found asked from airside (PASS)
+- **Input:** Traveller at Food Court asks for Lost & Found (before security)
+- **Expected:** Explains it's before security; routes to the Information Desk instead
+- **Outcome:** `DIRECTIONS_REDIRECTED`
+- **Output:** 🧭 Lost & Found (Arrivals Hall) is before security, and you can't go back through from here. The Information Desk at Central Plaza can help instead — about 2 min away. Route: Food Court → Central Plaza (Duty Free) → Information Des
+
+### T26 — Question router — 96 real phrasings (PASS)
+- **Input:** tests/question_bank.py (EN, AR, HI)
+- **Expected:** Every phrasing reaches the right worker
+- **Outcome:** `96/96 ROUTED_CORRECTLY`
+- **Output:** 96 of 96 questions routed to the right worker

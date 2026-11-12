@@ -133,14 +133,64 @@ T = {
         "ar": "🚫 لا يمكنني تنفيذ هذا الطلب. يمكنني المساعدة في حالة الرحلات والبوابات وأوقات المشي وطلبات المساعدة ومعلومات المطار.",
         "hi": "🚫 मैं यह अनुरोध पूरा नहीं कर सकता। मैं उड़ान की स्थिति, गेट, चलने का समय, सहायता और एयरपोर्ट जानकारी में मदद कर सकता हूँ।"},
     "greeting": {
-        "en": "👋 Hi! I'm the Sahra Airport assistant. Ask me about your gate, flight status, walking time to the gate, baggage belts, lost items or assistance.",
-        "ar": "👋 مرحباً! أنا مساعد مطار صحراء. اسألني عن بوابتك وحالة رحلتك ووقت المشي إلى البوابة وأحزمة الأمتعة والمفقودات أو طلب المساعدة.",
-        "hi": "👋 नमस्ते! मैं सहरा एयरपोर्ट असिस्टेंट हूँ। मुझसे अपने गेट, उड़ान की स्थिति, गेट तक चलने का समय, बैगेज बेल्ट, खोई वस्तुओं या सहायता के बारे में पूछें।"},
+        "en": "👋 Hi! I'm the Sahra Airport assistant. Ask me about your gate or flight status, the way to your gate (or toilets, prayer rooms, information desk), walking time, baggage belts, lost items or assistance.",
+        "ar": "👋 مرحباً! أنا مساعد مطار صحراء. اسألني عن بوابتك وحالة رحلتك، والطريق إلى البوابة (أو دورات المياه والمصلى ومكتب الاستعلامات)، ووقت المشي، وأحزمة الأمتعة، والمفقودات أو طلب المساعدة.",
+        "hi": "👋 नमस्ते! मैं सहरा एयरपोर्ट असिस्टेंट हूँ। मुझसे अपने गेट या उड़ान की स्थिति, गेट तक का रास्ता (या टॉयलेट, नमाज़ कक्ष, सूचना डेस्क), चलने का समय, बैगेज बेल्ट, खोई वस्तुओं या सहायता के बारे में पूछें।"},
     "held_fallback": {
         "en": "I can't confirm that right now, so I won't guess. Please check the screens or ask any staff member.",
         "ar": "لا يمكنني تأكيد ذلك الآن، لذلك لن أخمّن. يرجى مراجعة الشاشات أو سؤال أي موظف.",
         "hi": "मैं अभी इसकी पुष्टि नहीं कर सकता, इसलिए अनुमान नहीं लगाऊँगा। कृपया स्क्रीन देखें या किसी स्टाफ सदस्य से पूछें।"},
 }
+
+T.update({
+    "dir_route": {
+        "en": "🧭 To {dest} from {origin}: about {walk} min walk ({distance} m).\nRoute: {route}.\nFollow the overhead signs for “{sign}”.",
+        "ar": "🧭 إلى {dest} من {origin}: حوالي {walk} دقيقة مشياً ({distance} م).\nالمسار: {route}.\nاتبع اللافتات العلوية إلى “{sign}”.",
+        "hi": "🧭 {origin} से {dest} तक: लगभग {walk} मिनट पैदल ({distance} मी)।\nरास्ता: {route}।\nऊपर लगे “{sign}” के संकेतों का पालन करें।"},
+    "dir_no_origin": {
+        "en": "🧭 {dest}: follow the overhead signs for “{sign}”. Tell me where you are now — for example Food Court, Duty Free or the nearest gate number — and I'll give you the exact route and walking time.",
+        "ar": "🧭 {dest}: اتبع اللافتات العلوية إلى “{sign}”. أخبرني أين أنت الآن — مثلاً منطقة المطاعم أو السوق الحرة أو رقم أقرب بوابة — وسأعطيك المسار الدقيق ووقت المشي.",
+        "hi": "🧭 {dest}: ऊपर लगे “{sign}” के संकेतों का पालन करें। मुझे बताइए कि आप अभी कहाँ हैं — जैसे फूड कोर्ट, ड्यूटी फ्री या सबसे पास का गेट नंबर — तो मैं आपको सटीक रास्ता और चलने का समय बता दूँगा।"},
+    "dir_lost_no_dest": {
+        "en": "🧭 Don't worry — I'll help you find your way. Where do you need to go (your flight number or gate, toilets, prayer room…)? And what can you see near you — a gate number, the Food Court or Duty Free? Any staff member or the Information Desk at Central Plaza can also help.",
+        "ar": "🧭 لا تقلق — سأساعدك في إيجاد طريقك. إلى أين تريد الذهاب (رقم رحلتك أو بوابتك، دورات المياه، المصلى…)؟ وماذا ترى بالقرب منك — رقم بوابة أو منطقة المطاعم أو السوق الحرة؟ يمكن أيضاً لأي موظف أو مكتب الاستعلامات في الساحة المركزية مساعدتك.",
+        "hi": "🧭 चिंता न करें — मैं आपको रास्ता ढूँढने में मदद करूँगा। आपको कहाँ जाना है (आपकी फ्लाइट नंबर या गेट, टॉयलेट, नमाज़ कक्ष…)? और आपके पास क्या दिख रहा है — कोई गेट नंबर, फूड कोर्ट या ड्यूटी फ्री? कोई भी स्टाफ सदस्य या सेंट्रल प्लाज़ा पर सूचना डेस्क भी मदद कर सकता है।"},
+    "dir_lost_origin": {
+        "en": "🧭 OK — you're near {origin}. From the Central Plaza (Duty Free), Pier A leads to Gates A1–A6 and Pier B to Gates B1–B12. Where do you need to go — your flight number or gate, the toilets, prayer room or information desk?",
+        "ar": "🧭 حسناً — أنت قرب {origin}. من الساحة المركزية (السوق الحرة) يؤدي الرصيف A إلى البوابات A1–A6 والرصيف B إلى البوابات B1–B12. إلى أين تريد الذهاب — رقم رحلتك أو بوابتك، دورات المياه، المصلى أو مكتب الاستعلامات؟",
+        "hi": "🧭 ठीक है — आप {origin} के पास हैं। सेंट्रल प्लाज़ा (ड्यूटी फ्री) से पियर A गेट A1–A6 की ओर और पियर B गेट B1–B12 की ओर जाता है। आपको कहाँ जाना है — आपकी फ्लाइट नंबर या गेट, टॉयलेट, नमाज़ कक्ष या सूचना डेस्क?"},
+    "dir_my_gate": {
+        "en": "Your flight {flight} boards at {boarding} from Gate {gate}.",
+        "ar": "صعود رحلتك {flight} في {boarding} من البوابة {gate}.",
+        "hi": "आपकी उड़ान {flight} की बोर्डिंग {boarding} पर गेट {gate} से है।"},
+    "dir_gate_unconfirmed": {
+        "en": "🧭 The gate for {flight} isn't confirmed yet, so I won't send you the wrong way. Go to the Central Plaza (Duty Free) — both piers start there — and check the departure screens, or ask me again in a few minutes.",
+        "ar": "🧭 بوابة الرحلة {flight} غير مؤكدة بعد، لذلك لن أرشدك إلى مكان خاطئ. توجه إلى الساحة المركزية (السوق الحرة) — حيث يبدأ الرصيفان — وراجع شاشات المغادرة، أو اسألني مرة أخرى بعد دقائق.",
+        "hi": "🧭 उड़ान {flight} का गेट अभी पुष्ट नहीं है, इसलिए मैं आपको गलत दिशा में नहीं भेजूँगा। सेंट्रल प्लाज़ा (ड्यूटी फ्री) जाएँ — दोनों पियर वहीं से शुरू होते हैं — और डिपार्चर स्क्रीन देखें, या कुछ मिनट बाद फिर पूछें।"},
+    "dir_landside": {
+        "en": "🧭 {dest} is before security, and you can't go back through from here. The Information Desk at Central Plaza can help instead — about {walk} min away.\nRoute: {route}.",
+        "ar": "🧭 {dest} يقع قبل نقطة التفتيش، ولا يمكنك العودة من هنا. يمكن لمكتب الاستعلامات في الساحة المركزية مساعدتك بدلاً من ذلك — على بعد حوالي {walk} دقيقة.\nالمسار: {route}.",
+        "hi": "🧭 {dest} सिक्योरिटी से पहले है, और यहाँ से आप वापस नहीं जा सकते। इसकी जगह सेंट्रल प्लाज़ा पर सूचना डेस्क मदद कर सकता है — लगभग {walk} मिनट दूर।\nरास्ता: {route}।"},
+    "dir_here": {"en": "🧭 You're already at {dest}.", "ar": "🧭 أنت بالفعل في {dest}.", "hi": "🧭 आप पहले से ही {dest} पर हैं।"},
+    "dir_prm": {
+        "en": " Need help getting there? Say “wheelchair” and our assistance team will come to you.",
+        "ar": " هل تحتاج مساعدة للوصول؟ اكتب “كرسي متحرك” وسيأتي إليك فريق المساعدة.",
+        "hi": " वहाँ पहुँचने में मदद चाहिए? “व्हीलचेयर” लिखें, हमारी सहायता टीम आपके पास आएगी।"},
+    "didnt_catch": {
+        "en": "Sorry, I didn't catch that. You can ask me about your gate or flight, the way to your gate, toilets or prayer rooms, baggage belts, a lost item or assistance.",
+        "ar": "عذراً، لم أفهم ذلك. يمكنك سؤالي عن بوابتك أو رحلتك، أو الطريق إلى البوابة، أو دورات المياه والمصلى، أو أحزمة الأمتعة، أو غرض مفقود، أو طلب مساعدة.",
+        "hi": "माफ़ कीजिए, मैं समझ नहीं पाया। आप मुझसे अपने गेट या फ्लाइट, गेट तक का रास्ता, टॉयलेट या नमाज़ कक्ष, बैगेज बेल्ट, खोई वस्तु या सहायता के बारे में पूछ सकते हैं।"},
+    "no_such_gate": {
+        "en": "There's no Gate {gate} at Sahra Airport — gates are A1–A6 and B1–B12. Please check your boarding pass or tell me your flight number.",
+        "ar": "لا توجد بوابة {gate} في مطار صحراء — البوابات هي A1–A6 وB1–B12. يرجى التحقق من بطاقة الصعود أو إخباري برقم رحلتك.",
+        "hi": "सहरा एयरपोर्ट पर गेट {gate} नहीं है — गेट A1–A6 और B1–B12 हैं। कृपया अपना बोर्डिंग पास देखें या अपना फ्लाइट नंबर बताएँ।"},
+    "baggage_dep": {
+        "en": "🧳 Checked bags for departing flight {flight} are handled by {airline}. For a missing, delayed or damaged bag, please contact the {airline} desk — I can't see bag tracking.",
+        "ar": "🧳 تتولى {airline} الأمتعة المسجلة للرحلة المغادرة {flight}. للأمتعة المفقودة أو المتأخرة أو التالفة، يرجى التواصل مع مكتب {airline} — لا يمكنني تتبع الحقائب.",
+        "hi": "🧳 प्रस्थान उड़ान {flight} के चेक-इन बैग {airline} संभालती है। खोए, देर से आए या क्षतिग्रस्त बैग के लिए कृपया {airline} डेस्क से संपर्क करें — मैं बैग ट्रैकिंग नहीं देख सकता।"},
+    "thanks": {"en": "You're welcome — have a good trip! ✈️", "ar": "على الرحب والسعة — رحلة سعيدة! ✈️",
+               "hi": "आपका स्वागत है — आपकी यात्रा शुभ हो! ✈️"},
+})
 
 FIELD_LABEL = {
     "gate": {"en": "gate", "ar": "رقم البوابة", "hi": "गेट"},

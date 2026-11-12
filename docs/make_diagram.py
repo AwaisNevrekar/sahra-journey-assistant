@@ -73,7 +73,7 @@ box(X, 180, CW, 62, "2  Validate & sanitise",
     ["Pydantic schema (gate format, statuses, timezone) · timestamp not in future · prompt-injection / fake-broadcast filter"])
 arrow(X + CW / 2, 242, X + CW / 2, 258)
 box(X, 260, CW, 62, "3  Coordinator",
-    ["Deterministic router (EN/AR/HI keywords) → worker · optional LLM only for 'unknown' intent, on redacted text"])
+    ["Deterministic router (EN/AR/HI, 96-phrase test bank) + chat memory for follow-ups · optional LLM only for 'unknown'"])
 arrow(X + CW / 2, 322, X + CW / 2, 338)
 
 # workers
@@ -86,14 +86,13 @@ wk = [("4a Feed reconciler", ["FIDS vs airline per field", "→ data state + sta
       ("4d Human hand-off", ["medical · wheelchair ·", "unanswerable → ticket now"]),
       ("4e Lost & found", ["match found register", "→ staff verify in person"]),
       ("4f Official info", ["quote published text only", "visa → official sources"]),
-      ("4g Proactive scan", ["who must leave now?", "nudge + PRM buggy alert"])]
+      ("4g Proactive scan", ["who must leave now?", "nudge + PRM buggy alert"]),
+      ("4h Directions", ["'I'm lost' → route,", "walk time & signs"])]
 for i, (t, l) in enumerate(wk):
     cx = X + 14 + (i % 4) * 211
     cy = 378 + (i // 4) * 94
     box(cx, cy, 200, 84, t, l, fill="#FFFFFF", stroke=LINE, tsize=15, lsize=12.5)
-parts.append(f'<text x="{X + 14 + 3 * 211 + 4}" y="{378 + 94 + 30}" font-size="12.5" fill="{MUTED}">feed events → 4a → 5</text>'
-             f'<text x="{X + 14 + 3 * 211 + 4}" y="{378 + 94 + 48}" font-size="12.5" fill="{MUTED}">questions → 4a/4b/4c</text>'
-             f'<text x="{X + 14 + 3 * 211 + 4}" y="{378 + 94 + 66}" font-size="12.5" fill="{MUTED}">or 4d / 4e / 4f</text>')
+
 arrow(X + CW / 2, 572, X + CW / 2, 588)
 box(X, 590, CW, 56, "5  Remember state",
     ["Detects gate change · delay ≥ 10 min · cancellation vs last CONFIRMED values · remembers what passengers were told"])

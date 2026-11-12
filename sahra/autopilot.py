@@ -8,7 +8,7 @@ import json
 
 from . import clock, config, db, engine
 
-REPLAY = json.loads((config.DATA / "feed_replay.json").read_text())["events"]
+REPLAY = json.loads((config.DATA / "feed_replay.json").read_text(encoding="utf-8"))["events"]
 
 
 def pending_replay():

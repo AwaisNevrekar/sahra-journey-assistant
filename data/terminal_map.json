@@ -132,6 +132,38 @@
    "label": "Gate B12",
    "airside": true,
    "gate": true
+  },
+  "INFO_DESK": {
+   "label": "Information Desk (Central Plaza)",
+   "airside": true
+  },
+  "INFO_DESK_LANDSIDE": {
+   "label": "Information Desk (Check-in Hall)",
+   "airside": false
+  },
+  "TOILETS_PLAZA": {
+   "label": "Toilets (Central Plaza)",
+   "airside": true
+  },
+  "TOILETS_A": {
+   "label": "Toilets (Pier A entrance)",
+   "airside": true
+  },
+  "TOILETS_B": {
+   "label": "Toilets (Pier B entrance)",
+   "airside": true
+  },
+  "TOILETS_LANDSIDE": {
+   "label": "Toilets (Check-in Hall)",
+   "airside": false
+  },
+  "PRAYER_ROOM_B": {
+   "label": "Prayer Room (near Gate B6)",
+   "airside": true
+  },
+  "LOST_FOUND": {
+   "label": "Lost & Found (Arrivals Hall)",
+   "airside": false
   }
  },
  "edges": [
@@ -274,6 +306,46 @@
    "B11",
    "B12",
    70
+  ],
+  [
+   "CENTRAL_PLAZA",
+   "INFO_DESK",
+   30
+  ],
+  [
+   "CHECKIN_HALL",
+   "INFO_DESK_LANDSIDE",
+   20
+  ],
+  [
+   "CENTRAL_PLAZA",
+   "TOILETS_PLAZA",
+   40
+  ],
+  [
+   "A_JUNCTION",
+   "TOILETS_A",
+   20
+  ],
+  [
+   "B_JUNCTION",
+   "TOILETS_B",
+   20
+  ],
+  [
+   "CHECKIN_HALL",
+   "TOILETS_LANDSIDE",
+   30
+  ],
+  [
+   "B6",
+   "PRAYER_ROOM_B",
+   20
+  ],
+  [
+   "CHECKIN_HALL",
+   "LOST_FOUND",
+   150
   ]
  ],
  "aliases": {
@@ -300,6 +372,163 @@
   "फूड कोर्ट": "FOOD_COURT",
   "ड्यूटी फ्री": "CENTRAL_PLAZA",
   "चेक-इन": "CHECKIN_HALL",
-  "सेंट्रल प्लाज़ा": "CENTRAL_PLAZA"
+  "सेंट्रल प्लाज़ा": "CENTRAL_PLAZA",
+  "information desk": "INFO_DESK",
+  "info desk": "INFO_DESK",
+  "toilets": "TOILETS_PLAZA",
+  "lost and found": "LOST_FOUND",
+  "pier a": "A_JUNCTION",
+  "pier b": "B_JUNCTION"
+ },
+ "destinations": {
+  "toilets": {
+   "nodes": [
+    "TOILETS_PLAZA",
+    "TOILETS_A",
+    "TOILETS_B",
+    "TOILETS_LANDSIDE"
+   ],
+   "sign": "Toilets",
+   "keywords": [
+    "toilet",
+    "toilets",
+    "restroom",
+    "restrooms",
+    "bathroom",
+    "washroom",
+    "wc",
+    "loo",
+    "دورة مياه",
+    "دورات المياه",
+    "الحمام",
+    "حمام",
+    "टॉयलेट",
+    "शौचालय",
+    "बाथरूम"
+   ]
+  },
+  "prayer": {
+   "nodes": [
+    "PRAYER_ROOM",
+    "PRAYER_ROOM_B"
+   ],
+   "sign": "Prayer Room",
+   "keywords": [
+    "prayer",
+    "pray",
+    "mosque",
+    "namaz",
+    "musalla",
+    "المصلى",
+    "مصلى",
+    "صلاة",
+    "أصلي",
+    "नमाज़",
+    "नमाज",
+    "प्रार्थना"
+   ]
+  },
+  "info": {
+   "nodes": [
+    "INFO_DESK",
+    "INFO_DESK_LANDSIDE"
+   ],
+   "sign": "Information",
+   "keywords": [
+    "information desk",
+    "info desk",
+    "information counter",
+    "help desk",
+    "مكتب الاستعلامات",
+    "الاستعلامات",
+    "सूचना डेस्क",
+    "हेल्प डेस्क"
+   ]
+  },
+  "lost_found": {
+   "nodes": [
+    "LOST_FOUND"
+   ],
+   "sign": "Lost & Found / Arrivals",
+   "keywords": [
+    "lost and found",
+    "lost & found",
+    "lost property",
+    "المفقودات",
+    "लॉस्ट एंड फ़ाउंड",
+    "खोया-पाया"
+   ]
+  },
+  "food": {
+   "nodes": [
+    "FOOD_COURT"
+   ],
+   "sign": "Food Court",
+   "keywords": [
+    "food court",
+    "restaurant",
+    "restaurants",
+    "somewhere to eat",
+    "المطاعم",
+    "مطعم",
+    "फूड कोर्ट",
+    "रेस्टोरेंट"
+   ]
+  },
+  "duty_free": {
+   "nodes": [
+    "CENTRAL_PLAZA"
+   ],
+   "sign": "Duty Free / Central Plaza",
+   "keywords": [
+    "duty free",
+    "duty-free",
+    "central plaza",
+    "shops",
+    "shopping",
+    "السوق الحرة",
+    "الساحة المركزية",
+    "ड्यूटी फ्री",
+    "सेंट्रल प्लाज़ा"
+   ]
+  },
+  "family": {
+   "nodes": [
+    "FAMILY_ZONE"
+   ],
+   "sign": "Family Zone",
+   "keywords": [
+    "family zone",
+    "play area",
+    "nursing room",
+    "baby changing",
+    "منطقة العائلات",
+    "फैमिली ज़ोन",
+    "प्ले एरिया"
+   ]
+  },
+  "checkin": {
+   "nodes": [
+    "CHECKIN_HALL"
+   ],
+   "sign": "Check-in",
+   "keywords": [
+    "check-in",
+    "check in hall",
+    "checkin",
+    "check-in hall",
+    "تسجيل الوصول",
+    "चेक-इन"
+   ]
+  },
+  "security": {
+   "nodes": [
+    "SECURITY"
+   ],
+   "sign": "Security",
+   "keywords": [
+    "security"
+   ]
+  }
  }
 }

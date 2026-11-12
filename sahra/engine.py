@@ -35,9 +35,9 @@ def init(reset=False):
         return
     start = clock.parse(config.DEMO_START)
     clock.set_now(start)
-    for f in json.loads((config.DATA / "flights.json").read_text())["flights"]:
+    for f in json.loads((config.DATA / "flights.json").read_text(encoding="utf-8"))["flights"]:
         db.ex("INSERT INTO flights VALUES(?,?,?,?,?)", (f["flight_no"], f["airline"], f["direction"], f["city"], f["scheduled"]))
-    seed = json.loads((config.DATA / "feeds_seed.json").read_text())
+    seed = json.loads((config.DATA / "feeds_seed.json").read_text(encoding="utf-8"))
     for r in seed["records"]:
         r = dict(r)
         r["updated_at"] = (start - timedelta(minutes=r.pop("minutes_ago"))).isoformat()
@@ -45,12 +45,12 @@ def init(reset=False):
     for qrow in seed["queues"]:
         db.upsert_queue(qrow["checkpoint"], qrow["wait_min"], (start - timedelta(minutes=qrow["minutes_ago"])).isoformat())
     db.set_setting("feed_health", json.dumps(seed["health"]))
-    for p in json.loads((config.DATA / "passengers.json").read_text())["passengers"]:
+    for p in json.loads((config.DATA / "passengers.json").read_text(encoding="utf-8"))["passengers"]:
         seen = (start - timedelta(minutes=p["last_seen_minutes_ago"])).isoformat() if p["last_seen_zone"] else None
         db.ex("INSERT INTO passengers VALUES(?,?,?,?,?,?,?,?,?)",
               (privacy.pax_id(p["booking_ref"], p["last_name"]), p["flight_no"], p["lang"], p["mobility"],
                int(p["opted_in"]), p["channel"], privacy.mask_contact(p["channel"], p["phone"]), p["last_seen_zone"], seen))
-    for it in json.loads((config.DATA / "found_items.json").read_text())["found_items"]:
+    for it in json.loads((config.DATA / "found_items.json").read_text(encoding="utf-8"))["found_items"]:
         db.ex("INSERT INTO found_items VALUES(?,?,?,?,?, 'HELD')",
               (it["id"], it["category"], it["description"], it["zone"],
                (start - timedelta(minutes=it["found_minutes_ago"])).isoformat()))

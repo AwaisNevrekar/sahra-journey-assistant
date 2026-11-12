@@ -13,7 +13,7 @@ must be replaced with Sahra's own desk logs and gate data before any business ca
 | Passengers per day | 25,000 (brief) | |
 | Share who ask the info desk | 4 % *(assumption)* | **1,000 questions/day** |
 | Share that are repetitive (gate, delay, baggage belt, walking time, facilities, published rules) | 70 % *(assumption)* | 700 |
-| Share of those the assistant fully resolves | 80 % *(assumption — in the test log, 9 of 21 cases need no human at all; the rest are deliberate hand-offs or approvals)* | **560/day handled** |
+| Share of those the assistant fully resolves | 80 % *(assumption — in the test log, 13 of 26 cases need no human at all; the rest are deliberate hand-offs or approvals)* | **560/day handled** |
 
 → **56 % less desk load.** The remaining questions still reach staff — plus the ones the assistant deliberately hands over
 (medical, assistance, conflicting data), which is the point.

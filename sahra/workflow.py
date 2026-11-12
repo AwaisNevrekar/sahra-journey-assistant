@@ -4,7 +4,7 @@
  2 Validate       Pydantic schemas, freshness, prompt-injection filter
  3 Coordinator    routes the event (rule router; optional LLM only for unknown questions)
  4 Workers        4a feed reconciler · 4b journey solver · 4c responder · 4d human hand-off · 4e lost & found
-                  4f official-info/policy · 4g proactive nudge scan
+                  4f official-info/policy · 4g proactive nudge scan · 4h directions (wayfinding)
  5 Remember       change detection vs. stored flight state · chat session memory
  6 Guard          code-only rules on every outbound draft
  7 Approval       whole-flight broadcasts pause (LangGraph interrupt) for staff sign-off; timeout = do not send
@@ -13,6 +13,7 @@
 10 Demo           Streamlit dashboard (app.py)
 """
 import json
+import re
 import operator
 from datetime import timedelta
 from typing import Annotated, TypedDict
@@ -30,7 +31,7 @@ from .schemas import FeedRecord, QuestionIn
 OFFICIAL = json.loads((config.DATA / "official_info.json").read_text(encoding="utf-8"))["entries"]
 ROUTES = {"medical": "handoff", "assistance": "handoff", "unknown": "handoff", "lost": "lost", "visa": "policy",
           "security": "policy", "facility": "policy", "privacy": "policy", "greeting": "policy", "flight": "flight",
-          "walk": "flight", "baggage": "flight"}
+          "walk": "flight", "baggage": "flight", "directions": "directions"}
 
 
 class S(TypedDict, total=False):
@@ -57,6 +58,14 @@ def _t(stage, summary):
 
 def _session(s):
     return s["event"].get("session") or {}
+
+
+def _remember(s, **kw):
+    """Stage 5 chat memory: what we just asked, so a short reply ('food court', 'gate B11') is understood."""
+    sid = _session(s).get("session_id", "anon")
+    mem = db.session_get(sid)
+    mem.update(kw)
+    db.session_set(sid, mem)
 
 
 def _chat_draft(s, text, kind, facts=None):
@@ -108,9 +117,9 @@ def n2_validate(s: S):
         pref = sess.get("lang_pref")
         lang = pref if pref in config.SUPPORTED_LANGS else intents.detect_lang(text)
         try:
-            QuestionIn(text=text, session_id=sess.get("session_id", "anon"))
+            QuestionIn(text=text.strip(), session_id=sess.get("session_id", "anon"))
         except ValidationError:
-            d = _chat_draft({**s, "lang": lang}, M.t("blocked", lang), "blocked")
+            d = _chat_draft({**s, "lang": lang}, M.t("didnt_catch" if not text.strip() else "blocked", lang), "blocked")
             db.log(eid, stage, "BLOCKED", "Question rejected (empty or too long)")
             return {"blocked": True, "lang": lang, "outcome": "BLOCKED_INVALID", "drafts": [d],
                     "trace": [_t(stage, "Rejected: empty or over 500 characters")]}
@@ -144,9 +153,27 @@ def n3_coordinator(s: S):
         li = llm.classify(privacy.redact_for_llm(ev["text"]))
         if li and li != "unknown":
             intent, via = li, f"LLM ({llm.provider()}, redacted text)"
-    memory = db.session_get(sess.get("session_id", "anon"))
+    sid = sess.get("session_id", "anon")
+    memory = db.session_get(sid)
+    followup = ""
+    aw = memory.get("awaiting")
+    if aw and intent not in ("medical", "assistance", "privacy", "visa", "security", "lost"):
+        place = ents.get("origin") or ents.get("location")
+        if not place and ents.get("destination"):
+            k, v = ents["destination"]
+            place = v if k == "node" else (wf.DESTS[v]["nodes"][0] if len(wf.DESTS[v]["nodes"]) == 1 else None)
+        if aw == "location" and place:
+            ents.update(origin=place, location=place,
+                        destination=tuple(memory["dest"]) if memory.get("dest") else None)
+            intent, followup = memory.get("for", "directions"), " (answer to 'where are you?')"
+        elif aw == "destination" and (ents.get("destination") or ents.get("flight_no")):
+            ents["origin"] = ents.get("origin") or memory.get("origin")
+            intent, followup = "directions", " (answer to 'where do you need to go?')"
+    memory.pop("awaiting", None)
+    db.session_set(sid, memory)
     flight = ents.get("flight_no") or sess.get("flight_no") or memory.get("last_flight")
     route = ROUTES[intent]
+    via += followup
     msg = f"Intent '{intent}' via {via} → {route} worker" + (f" · flight {flight}" if flight else "")
     db.log(eid, stage, "DECISION", msg, {"intent": intent, "entities": ents})
     return {"route": route, "intent": intent, "entities": ents, "flight_no": flight, "trace": [_t(stage, msg)]}
@@ -205,7 +232,14 @@ def n4c_respond(s: S):
     if not rec:
         d = _chat_draft(s, M.t("need_flight", lang), "clarify")
         return {"drafts": [d], "outcome": "ASKED_FOR_FLIGHT", "trace": [_t(stage, "Asked traveller for flight number")]}
+    if s.get("intent") == "baggage" and rec.get("exists") and rec["direction"] == "DEP":
+        d = _chat_draft(s, M.t("baggage_dep", lang, flight=rec["flight_no"], airline=rec["airline"]), "answer")
+        db.log(eid, stage, "DECISION", "Baggage question about a departing flight → airline baggage desk")
+        return {"drafts": [d], "outcome": "ANSWERED_REFERRED_AIRLINE",
+                "trace": [_t(stage, "Departing-flight baggage → referred to the airline (no invented bag status)")]}
     text, facts = compose.flight_answer(rec, lang, s.get("journey"))
+    if (s.get("journey") or {}).get("needs_location"):
+        _remember(s, awaiting="location", **{"for": "walk"})
     tickets = list(s.get("tickets") or [])
     j = s.get("journey") or {}
     if j.get("status") == "AT_RISK":
@@ -246,6 +280,11 @@ def n4d_handoff(s: S):
         tid = db.create_ticket(eid, "PRM_ASSIST", "HIGH", "ASSISTANCE",
                                f"Reduced-mobility assistance at {where_staff}{flight}: \"{q}\"")
         text, outcome = M.t("handoff_assist", lang, ticket=tid, where=where), "ESCALATED_ASSISTANCE"
+    elif len(re.findall(r"[^\W\d_]{2,}", s["event"]["text"])) < 2:
+        # too short to understand ("?", "123", an emoji) → explain what we can do; don't spam the desk
+        db.log(eid, stage, "DECISION", "Input too short to understand → help menu, no ticket")
+        return {"drafts": [_chat_draft(s, M.t("didnt_catch", lang), "clarify")], "outcome": "ASKED_TO_REPHRASE",
+                "trace": [_t(stage, "Too short to understand → asked to rephrase (no ticket)")]}
     else:
         tid = db.create_ticket(eid, "INFO_DESK", "NORMAL", "UNANSWERED_QUESTION", f"Traveller asked: \"{q}\"")
         text, outcome = M.t("handoff_unknown", lang, ticket=tid), "ESCALATED_UNKNOWN"
@@ -297,7 +336,9 @@ def n4f_policy(s: S):
         text, outcome, msg = M.t("refuse_visa", lang), "REFUSED_VISA_REFERRED_OFFICIAL", \
             "Refused: visa/immigration is not answered beyond official sources"
     elif intent == "greeting":
-        text, outcome, msg = M.t("greeting", lang), "ANSWERED", "Greeting / help menu"
+        thanks = re.search(r"\b(thanks|thank you|thx)\b|شكرا|धन्यवाद|शुक्रिया", low)
+        text = M.t("thanks" if thanks else "greeting", lang)
+        outcome, msg = "ANSWERED", "Thanks" if thanks else "Greeting / help menu"
     else:
         topic = "security" if intent == "security" else "facility"
         entry = next((e for e in OFFICIAL if e["topic"] == topic and any(k in low for k in e["keywords"])), None)
@@ -311,6 +352,92 @@ def n4f_policy(s: S):
     kind = "REFUSAL" if outcome.startswith("REFUSED") else "DECISION"
     db.log(eid, stage, kind, msg)
     return {"drafts": [_chat_draft(s, text, "policy")], "outcome": outcome, "trace": [_t(stage, msg)]}
+
+
+# ---------------------------------------------------------------- 4h
+def n4h_directions(s: S):
+    """Wayfinding: 'I'm lost', 'where is gate B11', 'how do I get to the toilets'. Never guesses a gate."""
+    eid, lang = s["event_id"], s.get("lang", "en")
+    stage = "4h Directions"
+    sess, ents = _session(s), s.get("entities") or {}
+    text = s["event"]["text"]
+    low = text.lower()
+    origin, dest = ents.get("origin"), ents.get("destination")
+    if re.search(r"where\s+(?:do|should)\s+(?:i|we)\s+go", low) and dest and dest[0] == "node" and not origin:
+        origin, dest = dest[1], None                      # "where do I go after security?" → that place is where they are
+    origin = origin or sess.get("location")
+    mobility = ents.get("mobility") or sess.get("mobility") or "standard"
+    fn = s.get("flight_no")
+    wants_my_gate = dest is None or (bool(re.search(r"\bmy (gate|flight)\b|بوابتي|رحلتي|मेरा गेट|मेरी फ्लाइट", low))
+                                     and not (dest and dest[0] == "node" and wf.is_gate(dest[1])))
+    facts, prefix, rec, tickets = {}, "", None, list(s.get("tickets") or [])
+
+    bad_gate = re.search(r"\bgate\s+([A-Za-z]\d{1,2})\b", text, re.I)
+    if wants_my_gate and bad_gate and bad_gate.group(1).upper() not in wf.NODES:
+        db.log(eid, stage, "DECISION", f"Gate {bad_gate.group(1).upper()} does not exist")
+        return {"drafts": [_chat_draft(s, M.t("no_such_gate", lang, gate=bad_gate.group(1).upper()), "directions")],
+                "outcome": "ANSWERED", "trace": [_t(stage, f"No gate {bad_gate.group(1).upper()} at Sahra")]}
+    if wants_my_gate:
+        if not fn:
+            if re.search(r"gate|flight|بوابة|رحلة|गेट|फ्लाइट", low):
+                ask = M.t("need_flight", lang)
+            elif origin:
+                ask = M.t("dir_lost_origin", lang, origin=wf.label(origin))
+            else:
+                ask = M.t("dir_lost_no_dest", lang)
+            _remember(s, awaiting="destination", origin=origin)
+            db.log(eid, stage, "DECISION", "No destination and no flight known → asked where they need to go")
+            return {"drafts": [_chat_draft(s, ask, "directions")], "outcome": "ASKED_DESTINATION",
+                    "trace": [_t(stage, "No destination or flight → asked the traveller (no guessing)")]}
+        rec = rc.reconcile(fn)
+        for src, i in (rec.get("sources") or {}).items():
+            st_ = "missing" if not i["present"] else f"{i['age_min']} min old" + ("" if i["fresh"] else " → STALE, ignored")
+            db.log(eid, stage, "FEED_READ", f"Read {src} feed for {fn}: {st_}", i)
+        if not rec.get("exists"):
+            return {"drafts": [_chat_draft(s, M.t("flight_not_found", lang, flight=fn), "directions")],
+                    "outcome": "ANSWERED_FLIGHT_NOT_FOUND", "trace": [_t(stage, f"{fn} not in schedule")]}
+        tickets += rc.raise_data_alerts(rec, eid)
+        g, b = rec["fields"].get("gate", {}), rec["fields"].get("boarding_time", {})
+        if g.get("state") not in compose.CHAT_OK:
+            msg = f"{fn} gate is {g.get('state')} → no directions to an unverified gate"
+            db.log(eid, stage, "REFUSAL", msg)
+            return {"drafts": [_chat_draft(s, M.t("dir_gate_unconfirmed", lang, flight=fn), "directions")],
+                    "reconciled": rec, "tickets": tickets, "outcome": "REFUSED_TO_GUESS", "trace": [_t(stage, msg)]}
+        dest = ("node", g["value"])
+        facts["gate"] = {"state": g["state"], "value": g["value"]}
+        if b.get("state") in compose.CHAT_OK:
+            facts["boarding_time"] = {"state": b["state"], "value": b["value"]}
+            prefix = M.t("dir_my_gate", lang, flight=fn, boarding=clock.hhmm(b["value"]), gate=g["value"]) + "\n"
+
+    targets = [dest[1]] if dest[0] == "node" else wf.DESTS[dest[1]]["nodes"]
+    dest_name = wf.label(targets[0]) if len(targets) == 1 else wf.DESTS[dest[1]]["sign"]
+    if not origin:
+        text_out = prefix + M.t("dir_no_origin", lang, dest=dest_name, sign=wf.sign_for(targets[0]))
+        _remember(s, awaiting="location", dest=list(dest), **{"for": "directions"})
+        outcome, msg = "DIRECTIONS_SIGNS_ASKED_LOCATION", f"Destination {dest_name}; location unknown → signs + asked location"
+    else:
+        r = wf.route(origin, targets, mobility)
+        if r.get("unreachable"):
+            alt = wf.route(origin, ["INFO_DESK"], mobility)
+            text_out = prefix + M.t("dir_landside", lang, dest=dest_name, walk=alt["walk_min"],
+                                    route=" → ".join(alt["waypoints"]))
+            outcome, msg = "DIRECTIONS_REDIRECTED", f"{dest_name} is landside, traveller airside → sent to Information Desk"
+        elif r["target"] == origin:
+            text_out = prefix + M.t("dir_here", lang, dest=wf.label(origin))
+            outcome, msg = "DIRECTIONS_GIVEN", "Already there"
+        else:
+            text_out = prefix + M.t("dir_route", lang, dest=wf.label(r["target"]), origin=wf.label(origin), walk=r["walk_min"],
+                                    distance=r["distance_m"], route=" → ".join(r["waypoints"]), sign=r["sign"])
+            outcome = "DIRECTIONS_GIVEN"
+            msg = f"{wf.label(origin)} → {wf.label(r['target'])}: {r['distance_m']} m, {r['walk_min']} min ({mobility})"
+        if mobility == "reduced_mobility" and outcome == "DIRECTIONS_GIVEN" and r.get("target") != origin:
+            text_out += M.t("dir_prm", lang)
+    db.log(eid, stage, "DECISION", msg)
+    out = {"drafts": [_chat_draft(s, text_out, "directions", facts)], "tickets": tickets, "outcome": outcome,
+           "trace": [_t(stage, msg)]}
+    if rec:
+        out["reconciled"] = rec
+    return out
 
 
 # ---------------------------------------------------------------- 4g
@@ -390,6 +517,13 @@ def n5_state(s: S):
                 ("SYNCING_WAIT_NO_BROADCAST" if rec["quality"] == "SYNCING" else "STATE_UPDATED_NO_BROADCAST")
         db.log(eid, stage, "DECISION", msg, {"changes": changes})
         return {"drafts": drafts, **({"outcome": outcome} if outcome else {}), "trace": [_t(stage, msg)]}
+    sess = _session(s)
+    ents = s.get("entities") or {}
+    said_loc = ents.get("origin") or (ents.get("location") if s.get("intent") in ("walk", "assistance", "medical") else None)
+    if s["event"]["type"] == "question" and sess.get("pax_id") and said_loc:
+        db.ex("UPDATE passengers SET last_seen_zone=?, last_seen_at=? WHERE pax_id=?",
+              (said_loc, clock.now().isoformat(), sess["pax_id"]))
+        db.log(s["event_id"], stage, "DECISION", f"{sess['pax_id']} location updated to {wf.label(said_loc)} (said in chat)")
     if s["event"]["type"] == "question" and s.get("flight_no"):
         sid = _session(s).get("session_id", "anon")
         mem = db.session_get(sid)
@@ -531,7 +665,7 @@ def build_graph():
     for name, fn in [("n1_trigger", n1_trigger), ("n2_validate", n2_validate), ("n3_coordinator", n3_coordinator),
                      ("n4a_reconcile", n4a_reconcile), ("n4b_journey", n4b_journey), ("n4c_respond", n4c_respond),
                      ("n4d_handoff", n4d_handoff), ("n4e_lost", n4e_lost), ("n4f_policy", n4f_policy),
-                     ("n4g_nudge_scan", n4g_nudge_scan), ("n5_state", n5_state), ("n6_guard", n6_guard),
+                     ("n4g_nudge_scan", n4g_nudge_scan), ("n4h_directions", n4h_directions), ("n5_state", n5_state), ("n6_guard", n6_guard),
                      ("n7_approval", n7_approval), ("n8_gateway", n8_gateway), ("n9_log", n9_log)]:
         g.add_node(name, fn)
     g.add_edge(START, "n1_trigger")
@@ -540,11 +674,12 @@ def build_graph():
                             {"blocked": "n6_guard", "ok": "n3_coordinator"})
     g.add_conditional_edges("n3_coordinator", lambda s: s["route"],
                             {"feed": "n4a_reconcile", "flight": "n4a_reconcile", "tick": "n4g_nudge_scan",
-                             "handoff": "n4d_handoff", "lost": "n4e_lost", "policy": "n4f_policy"})
+                             "handoff": "n4d_handoff", "lost": "n4e_lost", "policy": "n4f_policy",
+                             "directions": "n4h_directions"})
     g.add_conditional_edges("n4a_reconcile", lambda s: "feed" if s["route"] == "feed" else "flight",
                             {"feed": "n5_state", "flight": "n4b_journey"})
     g.add_edge("n4b_journey", "n4c_respond")
-    for n in ("n4c_respond", "n4d_handoff", "n4e_lost", "n4f_policy", "n4g_nudge_scan"):
+    for n in ("n4c_respond", "n4d_handoff", "n4e_lost", "n4f_policy", "n4g_nudge_scan", "n4h_directions"):
         g.add_edge(n, "n5_state")
     g.add_edge("n5_state", "n6_guard")
     g.add_conditional_edges("n6_guard", route_after_guard, {"approval": "n7_approval", "send": "n8_gateway"})

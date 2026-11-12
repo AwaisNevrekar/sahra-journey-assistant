@@ -5,7 +5,7 @@
 Sahra International Airport: 25,000 passengers/day, one terminal, six info-desk staff answering the same questions.
 This prototype turns two live flight feeds into timely, safe actions:
 
-- **Travellers** ask in English, Arabic or Hindi: gate, boarding, walking time, baggage belt, lost items, assistance.
+- **Travellers** ask in English, Arabic or Hindi: gate, boarding, **directions when lost** (to a gate, toilets, prayer room…), walking time, baggage belt, lost items, assistance.
 - **Every minute** it checks who must leave *now* (gate far away, family pace, reduced mobility) and nudges them.
 - **Gate changes, delays, cancellations** are drafted for the whole flight — and wait for a **named staff member to approve**.
 - **Conflicting or missing data** is never stated. Staff are alerted instead.
@@ -17,7 +17,7 @@ This prototype turns two live flight feeds into timely, safe actions:
 |---|---|
 | Working prototype (traveller + staff interface) | `streamlit run app.py` |
 | One-page flow diagram | `docs/flow_diagram.pdf` / `.png` |
-| Test log ≥ 10 cases, ≥ 3 escalate / refuse | `outputs/test_log.md` / `.csv` — **21 cases, 21 pass, 11 escalate / refuse / block** |
+| Test log ≥ 10 cases, ≥ 3 escalate / refuse | `outputs/test_log.md` / `.csv` — **26 cases, 26 pass**, including escalations, refusals and blocks |
 | Value estimate | `docs/VALUE_ESTIMATE.md` + live calculator in the app |
 
 ## Run it (5 minutes)
@@ -27,7 +27,8 @@ python -m venv .venv
 source .venv/bin/activate            # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-python scenarios.py                  # runs the 21 test scenarios → outputs/test_log.md
+python scenarios.py                  # runs the 26 test scenarios → outputs/test_log.md
+python -m tests.question_bank        # 96 real phrasings must reach the right worker
 streamlit run app.py                 # opens the dashboard
 ```
 
@@ -38,16 +39,24 @@ Headless demo of the autonomous loop: `python -m sahra.autopilot --reset --minut
 
 ## 3-minute live demo script
 
-1. **Traveller tab** — click *🛫 Gate SA204* (confirmed answer), then *⚠️ Gate DX330* (feeds disagree → "not confirmed", ops alerted)
-   and *❔ OR512 status* (no fresh data → refuses to guess). Open "How I worked this out" to show the steps.
-2. Link booking **H8N3ZP / Al-Mansouri** (reduced mobility, Food Court).
-3. Turn on **Autopilot** in the sidebar. At 14:02 the display system changes SA204 to B11 — the airline hasn't yet, so nothing is sent.
-   At 14:03 the airline confirms → a broadcast appears in the **Staff console** waiting for approval.
-4. **Staff console** → preview the EN/AR/HI texts → *Approve & send*. The traveller's "Alerts sent to me" shows the gate change,
-   then the proactive **leave-now nudge** with a buggy offer; the PRM team gets a ticket.
-5. Ask *🧑‍🦽 Wheelchair*, *🛂 Transit visa*, *🔒 Someone else* — hand-off, refusal, privacy refusal.
+1. **Traveller** tab — tap the examples *Gate SA204* (confirmed answer), *Gate DX330* (feeds disagree → "not confirmed",
+   ops alerted) and *OR512 status* (no fresh data → refuses to guess). Open "How this answer was made" to show each step.
+2. Link booking **H8N3ZP / Al-Mansouri** (reduced mobility, Food Court). The gate card appears on the right.
+3. Turn on **Live mode** in the sidebar (or press **+1 min**). At 14:02 the display system changes SA204 to B11 — the airline
+   hasn't yet, so nothing is sent. At 14:03 the airline confirms → a broadcast waits in the **Staff** tab.
+4. **Staff** → *Preview messages* (EN/AR/HI) → **Approve**. Back in **Traveller**, "Messages to you" shows the gate change
+   and a leave-now reminder offering a buggy; the assistance team gets a ticket.
+5. Try *Wheelchair*, *Transit visa*, *Someone else's booking* — hand-off, refusal, privacy refusal.
 6. Leave a broadcast unapproved for 5 minutes → it expires, **is not sent**, duty manager alerted.
-7. **Live log** shows every feed read, decision and message. **Value** tab shows the estimate.
+7. **Activity** shows every feed read, decision and message. **Value** shows the estimate.
+
+## Design
+
+Minimal, following Apple's Human Interface Guidelines principles (via the apple-design-skill):
+system fonts; one accent colour (oasis teal `#0A5C5A`, 7.8:1 on white) used only for primary actions; status colours that mean
+only "how sure are we about this data", always with a text label; every text colour ≥ 4.5:1 in light and dark mode;
+preferences and simulator controls behind disclosures; one signature element — the boarding-pass gate card.
+Theme lives in `.streamlit/config.toml`, tokens at the top of `app.py`.
 
 ## How it works
 
@@ -62,6 +71,7 @@ One LangGraph run per event, 10 stages (see `docs/flow_diagram.pdf`):
 | 4b Journey solver | Dijkstra walking route + live queue sensors → leave-by time | `wayfinding.py` |
 | 4c Responder | approved templates filled with verified facts only | `compose.py`, `messages.py` |
 | 4d–4g | human hand-off · lost & found · official info · proactive nudges | `workflow.py` |
+| 4h Directions | "I'm lost", "where is…", "how do I get to…": nearest destination, route, walk time, signs; asks follow-up questions and remembers the answers | `wayfinding.py`, `workflow.n4h_directions` |
 | 5 Remember | change detection; remembers what passengers were last told | `reconcile.detect_changes` |
 | 6 Guard | code-only: no unverified fact, no personal data, broadcasts need approval | `guards.check` |
 | 7 Approval | durable LangGraph `interrupt()`; approve / reject / 5-min timeout = not sent | `workflow.n7_approval` |
@@ -77,6 +87,7 @@ One LangGraph run per event, 10 stages (see `docs/flow_diagram.pdf`):
 | Conflicting feeds | Display system and airline feed must agree. < 3 min apart = syncing (wait); ≥ 3 min = conflict → withheld + ops ticket (T04, T07). |
 | Visa / immigration / security rules | Visa & immigration: always referred to official sources (T15). Security: quotes published guidance verbatim with source and review date (T16); anything else → "ask a security officer". |
 | Personal nudges vs. approval | A leave-now nudge only uses the gate/boarding time passengers were officially told, so a change awaiting staff approval is never leaked through individual messages. |
+| Directions | Routes never go back through security; directions to "my gate" only when the gate is confirmed (T24); landside places from airside are redirected to the Information Desk (T25). |
 | Assistance & medical | Immediate ticket to PRM team or medical + duty manager, with location. No automated decision (T13, T14). |
 | Privacy | Names & booking refs never stored — salted hash ids, masked phone numbers, redacted logs (T17). The optional LLM sees redacted text only. Booking linking is limited to 3 attempts. |
 
